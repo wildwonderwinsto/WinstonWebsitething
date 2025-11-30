@@ -231,28 +231,28 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
     <div className="min-h-screen bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
       
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-6 z-50 flex justify-between items-center">
+      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 z-50 flex justify-between items-center">
         <button 
           onClick={onBack}
-          className="group relative rounded-full bg-zinc-900/50 p-3 hover:bg-zinc-800 transition backdrop-blur-md flex items-center gap-2 pr-4"
+          className="group relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md flex items-center gap-2 pr-4"
         >
-           <Home className="h-5 w-5 text-zinc-400 group-hover:text-white transition" />
-           <span className="text-sm font-medium text-zinc-400 group-hover:text-white transition">Launcher</span>
+           <Home className="h-4 w-4 md:h-5 md:w-5 text-zinc-400 group-hover:text-white transition" />
+           <span className="text-xs md:text-sm font-medium text-zinc-400 group-hover:text-white transition hidden sm:inline">Launcher</span>
         </button>
 
         <button 
           onClick={() => setShowSettings(true)} 
-          className="group relative rounded-full bg-zinc-900/50 p-3 hover:bg-zinc-800 transition backdrop-blur-md"
+          className="group relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md"
         >
-           <SettingsIcon className="h-6 w-6 text-zinc-400 group-hover:text-white transition-transform group-hover:rotate-90" />
+           <SettingsIcon className="h-5 w-5 md:h-6 md:w-6 text-zinc-400 group-hover:text-white transition-transform group-hover:rotate-90" />
         </button>
       </div>
 
       <div className="w-full max-w-7xl px-4 md:px-8 py-12 flex flex-col items-center gap-8 mt-8">
         
         {/* Header */}
-        <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
-           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-red-800 drop-shadow-sm text-center">
+        <div className="flex flex-col items-center gap-4 md:gap-6 w-full max-w-4xl px-2">
+           <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-red-800 drop-shadow-sm text-center">
              WinstonStreams
            </h1>
            
@@ -265,46 +265,46 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                 placeholder="Search for movies, TV shows..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-6 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition shadow-xl"
+                className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-3 md:py-4 pl-12 pr-6 text-base md:text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition shadow-xl"
              />
            </div>
         </div>
 
         {!searchQuery && (
-          <div className="w-full flex flex-col items-center gap-6 animate-fade-in">
-             <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight text-center">
+          <div className="w-full flex flex-col items-center gap-4 md:gap-6 animate-fade-in px-2">
+             <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight text-center">
                {getDynamicTitle()}
              </h2>
 
-             <div className="flex flex-wrap items-center justify-center gap-4 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800/50 backdrop-blur-sm">
+             <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800/50 backdrop-blur-sm w-full md:w-auto">
                 
-                <div className="relative group">
+                <div className="relative group flex-1 md:flex-none">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="appearance-none bg-zinc-900 text-white pl-4 pr-10 py-2 rounded-lg text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[140px]"
+                    className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[120px]"
                   >
                     <option value="popularity.desc">Trending</option>
                     <option value="vote_average.desc">Top Rated</option>
                     <option value="primary_release_date.desc">Newest</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 md:right-3 top-2 md:top-2.5 h-3 w-3 md:h-4 md:w-4 text-zinc-400 pointer-events-none" />
                 </div>
 
-                <div className="relative group">
+                <div className="relative group flex-1 md:flex-none">
                   <select
                     value={mediaType}
                     onChange={(e) => setMediaType(e.target.value as MediaType)}
-                    className="appearance-none bg-zinc-900 text-white pl-4 pr-10 py-2 rounded-lg text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[140px]"
+                    className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[120px]"
                   >
                     <option value="all">All Types</option>
                     <option value="movie">Movies</option>
                     <option value="tv">TV Shows</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 md:right-3 top-2 md:top-2.5 h-3 w-3 md:h-4 md:w-4 text-zinc-400 pointer-events-none" />
                 </div>
 
-                <div className="relative group">
+                <div className="relative group flex-1 md:flex-none basis-full md:basis-auto">
                   <select
                     value={selectedGenreVal}
                     onChange={(e) => {
@@ -315,7 +315,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                         setSelectedGenreVal(val ? Number(val) : '');
                       }
                     }}
-                    className="appearance-none bg-zinc-900 text-white pl-4 pr-10 py-2 rounded-lg text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[140px]"
+                    className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[140px]"
                   >
                     <option value="">All Genres</option>
                     {availableGenres.map(g => (
@@ -324,7 +324,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-2 md:right-3 top-2 md:top-2.5 h-3 w-3 md:h-4 md:w-4 text-zinc-400 pointer-events-none" />
                 </div>
                 
              </div>
@@ -334,7 +334,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
         <div className="w-full border-t border-zinc-900/50"></div>
 
         <div className="w-full">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {movies.map((movie, index) => {
               if (movies.length === index + 1) {
                 return (
@@ -355,7 +355,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
           )}
 
           {!loading && movies.length === 0 && (
-             <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
+             <div className="flex flex-col items-center justify-center py-20 text-zinc-500 text-center px-4">
                {searchQuery ? (
                  <p className="text-lg">No results found for "{searchQuery}"</p>
                ) : (

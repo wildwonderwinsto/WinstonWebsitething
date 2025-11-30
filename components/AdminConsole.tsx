@@ -190,7 +190,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
         }`}
     >
         <Icon className={`h-5 w-5 mb-2 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-black fill-black' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-widest transition-colors">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap">{label}</span>
         
         {/* Active Indicator Dot */}
         {isActive && (
@@ -213,10 +213,11 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
     <div className="fixed inset-0 z-[10000] bg-black text-red-500 font-mono flex flex-col overflow-hidden selection:bg-red-900 selection:text-white animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
       
       {/* HEADER */}
-      <div className="h-12 border-b border-red-900/30 flex items-center justify-between px-4 bg-zinc-950/50 backdrop-blur-sm">
+      <div className="h-12 border-b border-red-900/30 flex items-center justify-between px-4 bg-zinc-950/50 backdrop-blur-sm shrink-0">
          <div className="flex items-center gap-3">
             <TerminalIcon className="h-4 w-4 text-red-600 animate-pulse" />
-            <span className="text-sm font-bold tracking-[0.2em] text-red-600">ROOT_ACCESS // WINSTON_OPS</span>
+            <span className="text-sm font-bold tracking-[0.2em] text-red-600 hidden md:inline">ROOT_ACCESS // WINSTON_OPS</span>
+            <span className="text-sm font-bold tracking-[0.2em] text-red-600 md:hidden">ROOT_OPS</span>
          </div>
          <div className="flex items-center gap-4">
             <span className="text-[10px] text-zinc-600 hidden md:block animate-pulse">SECURE_CONNECTION_ESTABLISHED</span>
@@ -226,11 +227,11 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
          </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         
-        {/* LEFT: TARGET LIST */}
-        <div className="w-64 border-r border-red-900/30 flex flex-col bg-black/50 backdrop-blur-md">
-           <div className="p-3 border-b border-red-900/30 flex justify-between items-center bg-red-950/5">
+        {/* LEFT: TARGET LIST - Adaptive Width/Height */}
+        <div className="w-full lg:w-64 h-48 lg:h-auto border-b lg:border-b-0 lg:border-r border-red-900/30 flex flex-col bg-black/50 backdrop-blur-md shrink-0">
+           <div className="p-2 lg:p-3 border-b border-red-900/30 flex justify-between items-center bg-red-950/5 sticky top-0 bg-black z-10">
                <span className="text-xs font-bold tracking-widest text-zinc-500">NET_TOPOLOGY</span>
                <span className="text-xs bg-red-900/20 px-2 py-0.5 text-red-400 border border-red-900/30">{users.length}</span>
            </div>
@@ -256,31 +257,31 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
 
            <button 
               onClick={() => toggleSelect('all')}
-              className="p-3 border-t border-red-900/30 text-xs font-bold hover:bg-red-900/10 text-center tracking-widest text-red-800 hover:text-red-500 transition-colors duration-200"
+              className="p-3 border-t border-red-900/30 text-xs font-bold hover:bg-red-900/10 text-center tracking-widest text-red-800 hover:text-red-500 transition-colors duration-200 hidden lg:block"
            >
               [{selectedUsers.length === users.length ? 'DESELECT_ALL' : 'SELECT_ALL_NODES'}]
            </button>
         </div>
 
         {/* CENTER: MONITOR & OPS */}
-        <div className="flex-1 flex flex-col border-r border-red-900/30 bg-[linear-gradient(rgba(20,0,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(20,0,0,0.1)_1px,transparent_1px)] bg-[size:20px_20px]">
+        <div className="flex-1 flex flex-col bg-[linear-gradient(rgba(20,0,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(20,0,0,0.1)_1px,transparent_1px)] bg-[size:20px_20px] overflow-hidden">
             
             {/* TOP: LIVE MONITOR */}
-            <div className="h-1/2 flex flex-col border-b border-red-900/30 relative overflow-hidden">
+            <div className="h-48 lg:h-1/2 flex flex-col border-b border-red-900/30 relative overflow-hidden shrink-0">
                 <div className="absolute top-2 left-2 text-[10px] text-zinc-600 font-bold tracking-widest z-10">LIVE_FEED :: {selectedUserData?.id || 'GLOBAL_VIEW'}</div>
                 
                 {/* Scanline Effect */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-500/5 to-transparent h-1/4 animate-[scan_4s_linear_infinite] pointer-events-none"></div>
 
-                <div className="flex-1 flex items-center justify-center p-8">
+                <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
                     {selectedUserData ? (
-                        <div className="w-full max-w-lg border border-red-900/50 bg-black/80 p-6 relative animate-in zoom-in-95 duration-300">
+                        <div className="w-full max-w-lg border border-red-900/50 bg-black/80 p-6 relative animate-in zoom-in-95 duration-300 h-full lg:h-auto flex items-center justify-center">
                              {/* Screen Glare */}
                              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
                              
                              <div className="flex flex-col items-center gap-4">
                                 {selectedUserData.poster ? (
-                                    <div className="relative w-24 h-36 rounded border border-red-900/50 overflow-hidden shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+                                    <div className="relative w-24 h-36 lg:w-32 lg:h-48 rounded border border-red-900/50 overflow-hidden shadow-[0_0_15px_rgba(220,38,38,0.3)]">
                                         <img src={selectedUserData.poster} alt="Poster" className="w-full h-full object-cover opacity-80" />
                                         <div className="absolute inset-0 bg-red-900/20 mix-blend-overlay"></div>
                                     </div>
@@ -302,16 +303,16 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-4 opacity-30 animate-pulse duration-[3000ms]">
-                           <Globe className="h-16 w-16 text-zinc-800" />
-                           <div className="text-zinc-800 text-2xl font-black select-none tracking-[0.5em]">SYSTEM_READY</div>
+                           <Globe className="h-12 w-12 lg:h-16 lg:w-16 text-zinc-800" />
+                           <div className="text-zinc-800 text-xl lg:text-2xl font-black select-none tracking-[0.5em]">SYSTEM_READY</div>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* BOTTOM: OPERATIONS GRID */}
-            <div className="flex-1 bg-black/40 p-1 overflow-y-auto scrollbar-thin scrollbar-thumb-red-900/20">
-                 <div className="grid grid-cols-4 gap-px bg-red-900/20 border border-red-900/20 shadow-inner">
+            <div className="flex-1 bg-black/40 p-1 overflow-y-auto scrollbar-thin scrollbar-thumb-red-900/20 min-h-[200px]">
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-red-900/20 border border-red-900/20 shadow-inner">
                      {/* Row 1 */}
                      <ActionButton 
                         icon={chatEnabled ? Eye : EyeOff} 
@@ -356,8 +357,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                  </div>
 
                  {/* Alert Banner Input */}
-                 <div className="mt-4 border border-red-900/30 p-2 flex gap-2 bg-red-950/10 hover:bg-red-950/20 transition-colors">
-                     <div className="bg-red-900/20 p-2 flex items-center justify-center border border-red-900/30">
+                 <div className="mt-4 border border-red-900/30 p-2 flex flex-col sm:flex-row gap-2 bg-red-950/10 hover:bg-red-950/20 transition-colors">
+                     <div className="bg-red-900/20 p-2 flex items-center justify-center border border-red-900/30 hidden sm:flex">
                         <ShieldAlert className="h-4 w-4 text-red-500 animate-pulse" />
                      </div>
                      <input 
@@ -368,7 +369,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                      />
                      <button 
                         onClick={() => execute('alert', alertText)}
-                        className="bg-red-600 hover:bg-red-500 text-black font-bold px-4 text-xs transition-colors duration-200"
+                        className="bg-red-600 hover:bg-red-500 text-black font-bold px-4 py-2 sm:py-0 text-xs transition-colors duration-200"
                      >
                         SEND_ALERT
                      </button>
@@ -377,8 +378,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
         </div>
 
         {/* RIGHT: PAYLOAD DECK */}
-        <div className="w-80 flex flex-col bg-black/80 backdrop-blur-md">
-            <div className="p-3 border-b border-red-900/30 bg-red-950/5">
+        <div className="w-full lg:w-80 h-64 lg:h-auto border-t lg:border-t-0 lg:border-l border-red-900/30 flex flex-col bg-black/80 backdrop-blur-md shrink-0">
+            <div className="p-2 lg:p-3 border-b border-red-900/30 bg-red-950/5 sticky top-0 bg-black z-10">
                 <span className="text-xs font-bold tracking-widest text-zinc-500">PAYLOAD_INJECTION</span>
             </div>
             
@@ -406,7 +407,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                         <input 
                             value={ttsText}
                             onChange={(e) => setTtsText(e.target.value)}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors"
+                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors w-full"
                             placeholder="TTS Message..."
                         />
                         <button onClick={() => execute('tts', ttsText)} className="bg-zinc-800 hover:bg-red-600 hover:text-white px-3 text-xs border border-zinc-700 transition-colors">TX</button>
@@ -427,7 +428,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                         <input 
                             value={imageUrl}
                             onChange={(e) => setImageUrl(e.target.value)}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors"
+                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors w-full"
                             placeholder="Image URL..."
                         />
                         <button onClick={() => execute('image', imageUrl)} className="bg-zinc-800 hover:bg-red-600 hover:text-white px-3 text-xs border border-zinc-700 transition-colors">TX</button>
@@ -448,7 +449,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                         <input 
                             value={redirectUrl}
                             onChange={(e) => setRedirectUrl(e.target.value)}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors"
+                            className="flex-1 bg-zinc-900 border border-zinc-800 text-xs p-2 text-white focus:border-red-600 outline-none placeholder:text-zinc-700 transition-colors w-full"
                             placeholder="Destination URL..."
                         />
                         <button onClick={() => execute('redirect', redirectUrl)} className="bg-zinc-800 hover:bg-red-600 hover:text-white px-3 text-xs border border-zinc-700 transition-colors">GO</button>
@@ -473,7 +474,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
 
       {/* FOOTER: COMMAND LINE */}
       <form onSubmit={broadcastChat} className="h-12 border-t border-red-900/30 bg-[#050505] flex items-center px-4 gap-3 shrink-0 focus-within:bg-zinc-950 transition-colors">
-          <span className="text-red-600 font-bold text-sm select-none">ADMIN@WINSTON:~$</span>
+          <span className="text-red-600 font-bold text-sm select-none hidden sm:inline">ADMIN@WINSTON:~$</span>
+          <span className="text-red-600 font-bold text-sm select-none sm:hidden">~$</span>
           <input 
              value={inputVal}
              onChange={(e) => setInputVal(e.target.value)}
@@ -481,7 +483,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
              placeholder="broadcast_message --all"
              autoFocus
           />
-          {inputVal && <span className="text-[10px] text-zinc-600 animate-pulse">[PRESS ENTER TO EXECUTE]</span>}
+          {inputVal && <span className="text-[10px] text-zinc-600 animate-pulse hidden sm:inline">[PRESS ENTER TO EXECUTE]</span>}
       </form>
 
     </div>

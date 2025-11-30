@@ -179,124 +179,126 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black animate-in fade-in duration-300">
       
-      {/* Cinematic Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/90 via-black/60 to-transparent p-4 pb-12 transition-all duration-300 hover:bg-black/80 pointer-events-none">
-        <div className="mx-auto max-w-7xl flex flex-col gap-4 md:flex-row md:items-center md:justify-between pointer-events-auto">
+      {/* Cinematic Header Overlay - Responsive */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/90 via-black/70 to-transparent p-4 md:p-6 transition-all duration-300 pointer-events-none">
+        <div className="mx-auto max-w-7xl flex flex-col gap-4 pointer-events-auto">
           
-          {/* Title & Back */}
-          <div className="flex items-center gap-4 min-w-0">
-             <button 
-               onClick={onClose}
-               className="group rounded-full bg-white/10 p-2 backdrop-blur-md transition hover:bg-white/20 hover:scale-105 active:scale-95"
-             >
-               <X className="h-6 w-6 text-white" />
-             </button>
-             <div className="min-w-0">
-               <h2 className="text-xl font-bold text-white leading-tight truncate drop-shadow-md">{title}</h2>
-               {isTv && (
-                 <p className="text-sm font-medium text-zinc-300 drop-shadow-sm">
-                   Season {season} • Episode {episode}
-                 </p>
-               )}
-             </div>
-          </div>
-
-          {/* Controls Container */}
-          <div className="flex flex-wrap items-center gap-3">
-            
-            {/* TV Selectors */}
-            {isTv && (
-              <div className="flex items-center gap-2 rounded-lg bg-black/40 p-1 backdrop-blur-md border border-white/10">
-                 {loadingDetails ? (
-                     <div className="px-4 py-2"><Loader2 className="h-4 w-4 animate-spin text-zinc-400" /></div>
-                 ) : (
-                   <>
-                      {/* Nav Buttons */}
-                      <button onClick={handlePrevEpisode} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
-                          <ChevronLeft className="h-4 w-4" />
-                      </button>
-
-                      <div className="relative group">
-                        <select 
-                            value={season}
-                            onChange={(e) => {
-                                setSeason(Number(e.target.value));
-                                setEpisode(1);
-                            }}
-                            className="appearance-none bg-transparent text-white text-sm font-medium py-1.5 pl-3 pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
-                        >
-                            {tvDetails?.seasons?.filter(s => s.season_number > 0 || tvDetails.seasons.length === 1).map(s => (
-                                <option key={s.id} value={s.season_number} className="bg-zinc-900">S{s.season_number}</option>
-                            ))}
-                            {!tvDetails && <option value="1" className="bg-zinc-900">S1</option>}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
-                      </div>
-                      
-                      <div className="w-px h-4 bg-white/20"></div>
-
-                      <div className="relative group">
-                        <select 
-                            value={episode}
-                            onChange={(e) => setEpisode(Number(e.target.value))}
-                            className="appearance-none bg-transparent text-white text-sm font-medium py-1.5 pl-3 pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
-                        >
-                            {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
-                                <option key={ep} value={ep} className="bg-zinc-900">Ep {ep}</option>
-                            ))}
-                        </select>
-                        <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
-                      </div>
-
-                      <button onClick={handleNextEpisode} className="p-1.5 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
-                          <ChevronRight className="h-4 w-4" />
-                      </button>
-                   </>
-                 )}
-              </div>
-            )}
-
-            {/* Proxy Toggle */}
-            <button 
-              onClick={handleProxyToggle}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all duration-300 ${
-                proxyMode 
-                  ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
-                  : 'bg-black/40 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              {proxyMode ? <ShieldCheck className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
-              <span className="text-xs font-bold uppercase tracking-wider">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
-            </button>
-            
-            {/* Backend Status Indicator (Only visible if Proxy is ON) */}
-            {proxyMode && (
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border backdrop-blur-md text-xs font-bold uppercase tracking-wider transition-colors ${
-                    backendOnline 
-                    ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' 
-                    : 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                }`}>
-                    {backendOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                    <span>{backendOnline ? 'Local' : 'Public'}</span>
-                </div>
-            )}
-
-            {/* Server Selector */}
-            <div className="relative flex items-center gap-2 rounded-lg bg-black/40 pl-3 pr-2 py-1.5 backdrop-blur-md border border-white/10">
-               <MonitorPlay className="h-4 w-4 text-zinc-400" />
-               <div className="relative">
-                 <select 
-                   value={server}
-                   onChange={(e) => setServer(e.target.value as ServerOption)}
-                   className="appearance-none bg-transparent text-white text-sm font-bold focus:outline-none py-1 pr-6 cursor-pointer"
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Title & Back */}
+              <div className="flex items-center gap-3 min-w-0 pr-4">
+                 <button 
+                   onClick={onClose}
+                   className="group flex-shrink-0 rounded-full bg-white/10 p-2 md:p-2.5 backdrop-blur-md transition hover:bg-white/20 hover:scale-105 active:scale-95"
                  >
-                   <option value="vidlink" className="bg-zinc-900">VidLink {proxyMode && backendOnline ? '(Secure)' : ''}</option>
-                   <option value="viksrc" className="bg-zinc-900">Viksrc</option>
-                 </select>
-                 <ChevronDown className="absolute right-0 top-1.5 h-3 w-3 text-zinc-500 pointer-events-none" />
-               </div>
-            </div>
+                   <X className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                 </button>
+                 <div className="min-w-0 flex-1">
+                   <h2 className="text-lg md:text-xl font-bold text-white leading-tight truncate drop-shadow-md">{title}</h2>
+                   {isTv && (
+                     <p className="text-xs md:text-sm font-medium text-zinc-300 drop-shadow-sm truncate">
+                       Season {season} • Episode {episode}
+                     </p>
+                   )}
+                 </div>
+              </div>
 
+              {/* Controls Container - Wraps on mobile */}
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                
+                {/* TV Selectors */}
+                {isTv && (
+                  <div className="flex items-center gap-1 md:gap-2 rounded-lg bg-black/40 p-1 backdrop-blur-md border border-white/10">
+                     {loadingDetails ? (
+                         <div className="px-4 py-2"><Loader2 className="h-4 w-4 animate-spin text-zinc-400" /></div>
+                     ) : (
+                       <>
+                          {/* Nav Buttons */}
+                          <button onClick={handlePrevEpisode} className="p-1.5 md:p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
+                              <ChevronLeft className="h-4 w-4" />
+                          </button>
+
+                          <div className="relative group">
+                            <select 
+                                value={season}
+                                onChange={(e) => {
+                                    setSeason(Number(e.target.value));
+                                    setEpisode(1);
+                                }}
+                                className="appearance-none bg-transparent text-white text-xs md:text-sm font-medium py-1.5 pl-2 md:pl-3 pr-6 md:pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
+                            >
+                                {tvDetails?.seasons?.filter(s => s.season_number > 0 || tvDetails.seasons.length === 1).map(s => (
+                                    <option key={s.id} value={s.season_number} className="bg-zinc-900">S{s.season_number}</option>
+                                ))}
+                                {!tvDetails && <option value="1" className="bg-zinc-900">S1</option>}
+                            </select>
+                            <ChevronDown className="absolute right-1 md:right-2 top-1.5 md:top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
+                          </div>
+                          
+                          <div className="w-px h-3 md:h-4 bg-white/20"></div>
+
+                          <div className="relative group">
+                            <select 
+                                value={episode}
+                                onChange={(e) => setEpisode(Number(e.target.value))}
+                                className="appearance-none bg-transparent text-white text-xs md:text-sm font-medium py-1.5 pl-2 md:pl-3 pr-6 md:pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
+                            >
+                                {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
+                                    <option key={ep} value={ep} className="bg-zinc-900">Ep {ep}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-1 md:right-2 top-1.5 md:top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
+                          </div>
+
+                          <button onClick={handleNextEpisode} className="p-1.5 md:p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
+                              <ChevronRight className="h-4 w-4" />
+                          </button>
+                       </>
+                     )}
+                  </div>
+                )}
+
+                {/* Proxy Toggle */}
+                <button 
+                  onClick={handleProxyToggle}
+                  className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all duration-300 ${
+                    proxyMode 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
+                      : 'bg-black/40 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {proxyMode ? <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Shield className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
+                </button>
+                
+                {/* Backend Status Indicator (Only visible if Proxy is ON) */}
+                {proxyMode && (
+                    <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border backdrop-blur-md text-xs font-bold uppercase tracking-wider transition-colors ${
+                        backendOnline 
+                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' 
+                        : 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                    }`}>
+                        {backendOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                        <span className="hidden md:inline">{backendOnline ? 'Local' : 'Public'}</span>
+                    </div>
+                )}
+
+                {/* Server Selector */}
+                <div className="relative flex items-center gap-2 rounded-lg bg-black/40 pl-3 pr-2 py-1.5 backdrop-blur-md border border-white/10 max-w-[120px] md:max-w-none">
+                   <MonitorPlay className="h-3.5 w-3.5 md:h-4 md:w-4 text-zinc-400 shrink-0" />
+                   <div className="relative min-w-0">
+                     <select 
+                       value={server}
+                       onChange={(e) => setServer(e.target.value as ServerOption)}
+                       className="appearance-none bg-transparent text-white text-xs md:text-sm font-bold focus:outline-none py-1 pr-5 cursor-pointer w-full truncate"
+                     >
+                       <option value="vidlink" className="bg-zinc-900">VidLink</option>
+                       <option value="viksrc" className="bg-zinc-900">Viksrc</option>
+                     </select>
+                     <ChevronDown className="absolute right-0 top-1 md:top-1.5 h-3 w-3 text-zinc-500 pointer-events-none" />
+                   </div>
+                </div>
+
+              </div>
           </div>
         </div>
       </div>

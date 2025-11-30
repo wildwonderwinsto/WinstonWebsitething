@@ -31,7 +31,7 @@ function App() {
 
             <div className="flex flex-col items-center gap-16 z-10 w-full max-w-6xl">
               <div className="space-y-4 text-center">
-                  <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none">
+                  <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none">
                   Winstons<br className="hidden md:block"/>Launcher
                   </h1>
                   <p className="text-zinc-500 font-medium tracking-widest uppercase text-sm md:text-base">Select your destination</p>
