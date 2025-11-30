@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
 import { X, Server, Loader2, Shield, ShieldCheck, ChevronDown, MonitorPlay, Wifi, WifiOff, ChevronRight, ChevronLeft } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
@@ -176,8 +177,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
       }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black animate-in fade-in duration-300">
+  // Use Portal to render outside of the main app flow (prevents stacking context issues)
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black animate-in fade-in duration-300">
       
       {/* Cinematic Header Overlay - Responsive */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/90 via-black/70 to-transparent p-4 md:p-6 transition-all duration-300 pointer-events-none">
@@ -310,13 +312,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
             src={getEmbedUrl()}
             className="absolute inset-0 h-full w-full border-0"
             allowFullScreen
-            // Explicitly allow scripts and same-origin to prevent "disable sandbox" errors for Viksrc
-            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
+            // IMPORTANT: Removed 'sandbox' attribute to prevent "Disable Sandbox" errors from providers like Viksrc
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             title={`Watch ${title}`}
         ></iframe>
       </div>
-    </div>
+    </div>,
+    document.body // Portal to body
   );
 };
 
