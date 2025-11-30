@@ -39,7 +39,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   
   // Settings
   const [settings, setSettings] = useState<Settings>(() => ({
-    tmdbApiKey: localStorage.getItem(TMDB_STORAGE_KEY) || '',
+    tmdbApiKey: localStorage.getItem(TMDB_STORAGE_KEY) || process.env.TMDB_API_KEY || '',
     useProxy: localStorage.getItem(PROXY_STORAGE_KEY) === 'true',
   }));
 

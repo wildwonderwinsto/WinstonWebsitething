@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, Server, Loader2, Shield, ShieldCheck, ChevronDown, MonitorPlay, Wifi, WifiOff, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Shield, ShieldCheck, ChevronDown, MonitorPlay, Wifi, WifiOff, ChevronRight, ChevronLeft, Ban, ExternalLink } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
-import { socket } from './GlobalOverlay'; // Import socket
+import { socket } from './GlobalOverlay';
 
 interface PlayerProps {
   movie: Movie | null;
@@ -14,21 +15,31 @@ interface PlayerProps {
 
 const PROXY_STORAGE_KEY = 'redstream_use_proxy';
 
-// Updated server list
-type ServerOption = 'vidlink' | 'viksrc';
+// Updated server list including user request for vidsrc.to
+type ServerOption = 'vidlink' | 'vidsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initialProxyState }) => {
-  // Local state for proxy mode to allow toggling within the player
+  // --- STATE ---
   const [proxyMode, setProxyMode] = useState(initialProxyState);
   const [server, setServer] = useState<ServerOption>('vidlink');
   const [backendOnline, setBackendOnline] = useState(false);
+  const [blockPopups, setBlockPopups] = useState(true); // Default to blocking ads
   
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // --- REPORT ACTIVITY ---
+  // --- SCROLL LOCK ---
+  useEffect(() => {
+    // Prevent background scrolling when player is open
+    document.body.style.overflow = 'hidden';
+    return () => {
+        document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // --- ACTIVITY REPORTING ---
   useEffect(() => {
     if (movie) {
         const title = movie.title || movie.name;
@@ -47,7 +58,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     }
 
     return () => {
-        // When player closes, report idle
         socket.emit('update_activity', {
             page: 'MovieApp',
             activity: 'Browsing Catalog',
@@ -57,7 +67,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     };
   }, [movie, season, episode]);
 
-  // Check Backend Status
+  // --- BACKEND CHECK ---
   useEffect(() => {
     const checkBackend = async () => {
         try {
@@ -70,40 +80,18 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     checkBackend();
   }, []);
 
-  // Sync server selection when proxy mode changes
+  // --- TV DETAILS ---
   useEffect(() => {
-    if (proxyMode) {
-        // If Backend is Online, we can use VidLink wrapped in Local Proxy (Best Quality)
-        // If Backend is Offline, we must use Viksrc (Public Proxy)
-        if (backendOnline) {
-            setServer('vidlink');
-        } else {
-            setServer('viksrc');
-        }
-    } else {
-        setServer('vidlink'); // Standard Direct Connection
-    }
-  }, [proxyMode, backendOnline]);
-
-  const handleProxyToggle = () => {
-    const newState = !proxyMode;
-    setProxyMode(newState);
-    // Persist to localStorage so the preference remembers
-    localStorage.setItem(PROXY_STORAGE_KEY, String(newState));
-  };
-
-  useEffect(() => {
-    if (movie?.media_type === 'tv' && apiKey) {
+    if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
       const loadDetails = async () => {
         setLoadingDetails(true);
         try {
             const details = await getTVDetails(movie.id, apiKey);
             setTvDetails(details);
-            // Check if season 1 is missing (sometimes starts at season 0 or others)
+            // Auto-select first available season
             if (details?.seasons?.length && !details.seasons.find(s => s.season_number === 1)) {
-                 // Default to the first available season that isn't 0 if possible
                  const firstSeason = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
-                 setSeason(firstSeason.season_number);
+                 if (firstSeason) setSeason(firstSeason.season_number);
             }
         } catch (e) {
             console.error("Failed to load TV details", e);
@@ -115,54 +103,18 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     }
   }, [movie, apiKey]);
 
-  if (!movie) return null;
-
-  const isTv = movie.media_type === 'tv' || !!movie.name;
-  const title = movie.title || movie.name;
-
-  // Construct Embed URL based on Server choice
-  const getEmbedUrl = () => {
-    let url = '';
-
-    switch (server) {
-      case 'vidlink':
-        // VidLink: High quality, very clean interface
-        url = isTv
-          ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
-          : `https://vidlink.pro/movie/${movie.id}`;
-        break;
-
-      case 'viksrc':
-        // Viksrc (Viking): Uses vidsrc.cc structure
-        url = isTv
-          ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
-        break;
-    }
-
-    // --- PROXY WRAPPER LOGIC ---
-    // If Proxy Mode is ON AND we are using VidLink AND the backend is Online
-    // We wrap the URL in our local proxy to bypass blocks.
-    if (proxyMode && server === 'vidlink' && backendOnline) {
-        return `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`;
-    }
-
-    return url;
+  // --- HANDLERS ---
+  const handleProxyToggle = () => {
+    const newState = !proxyMode;
+    setProxyMode(newState);
+    localStorage.setItem(PROXY_STORAGE_KEY, String(newState));
   };
 
-  // Helper to get episode count for current season
-  const getEpisodesForSeason = () => {
-    if (!tvDetails) return 24; // fallback
-    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
-    return currentSeason ? currentSeason.episode_count : 24;
-  };
-  
   const handleNextEpisode = () => {
       const maxEps = getEpisodesForSeason();
       if (episode < maxEps) {
           setEpisode(episode + 1);
       } else {
-          // Try to go to next season
           setSeason(season + 1);
           setEpisode(1);
       }
@@ -177,148 +129,191 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
       }
   };
 
-  // Use Portal to render outside of the main app flow (prevents stacking context issues)
+  const getEpisodesForSeason = () => {
+    if (!tvDetails) return 24;
+    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
+    return currentSeason ? currentSeason.episode_count : 24;
+  };
+
+  if (!movie) return null;
+
+  const isTv = movie.media_type === 'tv' || !!movie.name;
+  const title = movie.title || movie.name;
+
+  // --- EMBED URL LOGIC ---
+  const getEmbedUrl = () => {
+    let url = '';
+
+    switch (server) {
+      case 'vidlink':
+        // VidLink: High quality, usually fewer ads
+        url = isTv
+          ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
+          : `https://vidlink.pro/movie/${movie.id}`;
+        break;
+
+      case 'vidsrcto':
+        // User Requested: vidsrc.to
+        url = isTv
+          ? `https://vidsrc.to/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vidsrc.to/embed/movie/${movie.id}`;
+        break;
+
+      case 'viksrc':
+        // Viksrc: Backup
+        url = isTv
+          ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
+        break;
+    }
+
+    // Proxy Wrapping
+    if (proxyMode && server === 'vidlink' && backendOnline) {
+        return `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`;
+    }
+
+    return url;
+  };
+
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-black animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-black animate-in fade-in duration-300 h-[100dvh] w-screen overflow-hidden">
       
-      {/* Cinematic Header Overlay - Responsive */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/90 via-black/70 to-transparent p-4 md:p-6 transition-all duration-300 pointer-events-none">
-        <div className="mx-auto max-w-7xl flex flex-col gap-4 pointer-events-auto">
+      {/* --- HEADER CONTROLS --- */}
+      <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 md:px-8">
+        <div className="mx-auto max-w-[1920px] flex flex-col gap-4">
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* Title & Back */}
-              <div className="flex items-center gap-3 min-w-0 pr-4">
+              {/* Title Area */}
+              <div className="flex items-center gap-4 min-w-0">
                  <button 
                    onClick={onClose}
-                   className="group flex-shrink-0 rounded-full bg-white/10 p-2 md:p-2.5 backdrop-blur-md transition hover:bg-white/20 hover:scale-105 active:scale-95"
+                   className="group flex-shrink-0 rounded-full bg-zinc-800 p-2 hover:bg-zinc-700 hover:text-white transition active:scale-95"
                  >
-                   <X className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                   <X className="h-5 w-5 text-zinc-400 group-hover:text-white" />
                  </button>
-                 <div className="min-w-0 flex-1">
-                   <h2 className="text-lg md:text-xl font-bold text-white leading-tight truncate drop-shadow-md">{title}</h2>
+                 <div className="min-w-0">
+                   <h2 className="text-lg font-bold text-white truncate leading-none mb-1">{title}</h2>
                    {isTv && (
-                     <p className="text-xs md:text-sm font-medium text-zinc-300 drop-shadow-sm truncate">
-                       Season {season} • Episode {episode}
+                     <p className="text-xs font-mono text-zinc-400">
+                       S{season} : EP{episode}
                      </p>
                    )}
                  </div>
               </div>
 
-              {/* Controls Container - Wraps on mobile */}
-              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              {/* Action Bar */}
+              <div className="flex flex-wrap items-center gap-3">
                 
-                {/* TV Selectors */}
+                {/* 1. TV Controls */}
                 {isTv && (
-                  <div className="flex items-center gap-1 md:gap-2 rounded-lg bg-black/40 p-1 backdrop-blur-md border border-white/10">
-                     {loadingDetails ? (
-                         <div className="px-4 py-2"><Loader2 className="h-4 w-4 animate-spin text-zinc-400" /></div>
-                     ) : (
-                       <>
-                          {/* Nav Buttons */}
-                          <button onClick={handlePrevEpisode} className="p-1.5 md:p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
-                              <ChevronLeft className="h-4 w-4" />
-                          </button>
+                  <div className="flex items-center gap-1 bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                     <button onClick={handlePrevEpisode} className="p-2 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition">
+                         <ChevronLeft className="h-4 w-4" />
+                     </button>
+                     
+                     <div className="flex items-center gap-1 px-2">
+                        <select 
+                            value={season}
+                            onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1); }}
+                            className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer"
+                        >
+                            {tvDetails?.seasons?.filter(s => s.season_number > 0).map(s => (
+                                <option key={s.id} value={s.season_number}>S{s.season_number}</option>
+                            ))}
+                            {!tvDetails && <option value="1">S1</option>}
+                        </select>
+                        <span className="text-zinc-700">/</span>
+                        <select 
+                            value={episode}
+                            onChange={(e) => setEpisode(Number(e.target.value))}
+                            className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer"
+                        >
+                             {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
+                                <option key={ep} value={ep}>EP{ep}</option>
+                            ))}
+                        </select>
+                     </div>
 
-                          <div className="relative group">
-                            <select 
-                                value={season}
-                                onChange={(e) => {
-                                    setSeason(Number(e.target.value));
-                                    setEpisode(1);
-                                }}
-                                className="appearance-none bg-transparent text-white text-xs md:text-sm font-medium py-1.5 pl-2 md:pl-3 pr-6 md:pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
-                            >
-                                {tvDetails?.seasons?.filter(s => s.season_number > 0 || tvDetails.seasons.length === 1).map(s => (
-                                    <option key={s.id} value={s.season_number} className="bg-zinc-900">S{s.season_number}</option>
-                                ))}
-                                {!tvDetails && <option value="1" className="bg-zinc-900">S1</option>}
-                            </select>
-                            <ChevronDown className="absolute right-1 md:right-2 top-1.5 md:top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
-                          </div>
-                          
-                          <div className="w-px h-3 md:h-4 bg-white/20"></div>
-
-                          <div className="relative group">
-                            <select 
-                                value={episode}
-                                onChange={(e) => setEpisode(Number(e.target.value))}
-                                className="appearance-none bg-transparent text-white text-xs md:text-sm font-medium py-1.5 pl-2 md:pl-3 pr-6 md:pr-8 rounded cursor-pointer focus:outline-none hover:text-red-400 transition"
-                            >
-                                {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
-                                    <option key={ep} value={ep} className="bg-zinc-900">Ep {ep}</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="absolute right-1 md:right-2 top-1.5 md:top-2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
-                          </div>
-
-                          <button onClick={handleNextEpisode} className="p-1.5 md:p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition">
-                              <ChevronRight className="h-4 w-4" />
-                          </button>
-                       </>
-                     )}
+                     <button onClick={handleNextEpisode} className="p-2 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition">
+                         <ChevronRight className="h-4 w-4" />
+                     </button>
                   </div>
                 )}
 
-                {/* Proxy Toggle */}
+                {/* 2. Source Selector */}
+                <div className="relative flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 border border-zinc-800">
+                   <MonitorPlay className="h-3.5 w-3.5 text-zinc-500" />
+                   <select 
+                     value={server}
+                     onChange={(e) => setServer(e.target.value as ServerOption)}
+                     className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer pr-4 appearance-none"
+                   >
+                     <option value="vidlink">VidLink (Fast)</option>
+                     <option value="vidsrcto">VidSrc.to</option>
+                     <option value="viksrc">Viksrc</option>
+                   </select>
+                   <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-600 pointer-events-none" />
+                </div>
+
+                {/* 3. Popup Blocker Toggle */}
+                <button 
+                  onClick={() => setBlockPopups(!blockPopups)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                    blockPopups 
+                      ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
+                  }`}
+                  title={blockPopups ? "Ads Blocked (May break some players)" : "Ads Allowed (Max Compatibility)"}
+                >
+                  {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">{blockPopups ? 'Popups Blocked' : 'Popups Allowed'}</span>
+                </button>
+
+                {/* 4. Proxy Toggle */}
                 <button 
                   onClick={handleProxyToggle}
-                  className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg border backdrop-blur-md transition-all duration-300 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
                     proxyMode 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30' 
-                      : 'bg-black/40 border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white'
+                      ? 'bg-red-900/20 border-red-500/50 text-red-400' 
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
                   }`}
                 >
-                  {proxyMode ? <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Shield className="w-3.5 h-3.5 md:w-4 md:h-4" />}
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
+                  {proxyMode ? <ShieldCheck className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
                 </button>
-                
-                {/* Backend Status Indicator (Only visible if Proxy is ON) */}
-                {proxyMode && (
-                    <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border backdrop-blur-md text-xs font-bold uppercase tracking-wider transition-colors ${
-                        backendOnline 
-                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' 
-                        : 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                    }`}>
-                        {backendOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                        <span className="hidden md:inline">{backendOnline ? 'Local' : 'Public'}</span>
-                    </div>
-                )}
-
-                {/* Server Selector */}
-                <div className="relative flex items-center gap-2 rounded-lg bg-black/40 pl-3 pr-2 py-1.5 backdrop-blur-md border border-white/10 max-w-[120px] md:max-w-none">
-                   <MonitorPlay className="h-3.5 w-3.5 md:h-4 md:w-4 text-zinc-400 shrink-0" />
-                   <div className="relative min-w-0">
-                     <select 
-                       value={server}
-                       onChange={(e) => setServer(e.target.value as ServerOption)}
-                       className="appearance-none bg-transparent text-white text-xs md:text-sm font-bold focus:outline-none py-1 pr-5 cursor-pointer w-full truncate"
-                     >
-                       <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                       <option value="viksrc" className="bg-zinc-900">Viksrc</option>
-                     </select>
-                     <ChevronDown className="absolute right-0 top-1 md:top-1.5 h-3 w-3 text-zinc-500 pointer-events-none" />
-                   </div>
-                </div>
 
               </div>
           </div>
         </div>
       </div>
 
-      {/* Player Frame */}
-      <div className="flex-1 relative bg-black w-full h-full">
+      {/* --- VIDEO CONTAINER --- */}
+      <div className="flex-1 relative w-full h-full bg-black overflow-hidden">
+        {/* Loading Spinner underneath iframe */}
+        <div className="absolute inset-0 flex items-center justify-center z-0">
+            <div className="h-8 w-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${proxyMode}`}
+            key={`${server}-${movie.id}-${season}-${episode}-${proxyMode}-${blockPopups}`}
             src={getEmbedUrl()}
-            className="absolute inset-0 h-full w-full border-0"
+            className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // IMPORTANT: Removed 'sandbox' attribute to prevent "Disable Sandbox" errors from providers like Viksrc
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            // SMART SANDBOX: 
+            // - allow-scripts: Required for player to work
+            // - allow-same-origin: Required for streaming content
+            // - allow-presentation: Required for fullscreen
+            // - (Missing allow-popups): This blocks the new tab ads!
+            sandbox={blockPopups 
+                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
+                : "allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
+            }
             title={`Watch ${title}`}
         ></iframe>
       </div>
+
     </div>,
-    document.body // Portal to body
+    document.body
   );
 };
 

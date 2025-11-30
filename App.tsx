@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
@@ -6,65 +7,31 @@ import { Globe, ChevronRight, Tv, ShieldCheck } from 'lucide-react';
 
 type AppMode = 'launcher' | 'streams' | 'searches';
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: Error }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error('Render Error:', error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold text-red-500">Something went wrong</h1>
-            <p className="text-zinc-400">{this.state.error?.message}</p>
-            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white">
-              Reload Page
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 function App() {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden">
-        
-        {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
-        <GlobalOverlay />
+    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden">
+      
+      {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
+      <GlobalOverlay />
 
-        {/* 2. Main App Content */}
-        <div className="relative z-10 w-full h-full">
-          {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
-          
-          {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
+      {/* 2. Main App Content */}
+      <div className="relative z-10 w-full h-full min-h-screen flex flex-col">
+        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
+        
+        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
         {appMode === 'launcher' && (
-          <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden">
+          <div className="flex-1 flex flex-col items-center justify-between p-6 relative overflow-hidden">
             
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
             <div className="absolute bottom-[-10%] right-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
 
-            <div className="flex flex-col items-center gap-16 z-10 w-full max-w-6xl">
-              <div className="space-y-4 text-center">
+            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 max-w-6xl">
+              <div className="space-y-4 text-center mt-12 md:mt-0">
                   <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none">
                   Winstons<br className="hidden md:block"/>Launcher
                   </h1>
@@ -154,7 +121,8 @@ function App() {
               </div>
             </div>
             
-            <div className="absolute bottom-6 flex items-center gap-4 text-xs font-medium text-zinc-700 select-none">
+            {/* Footer - Now properly spaced */}
+            <div className="mt-12 flex items-center gap-4 text-xs font-medium text-zinc-700 select-none pb-2">
               <span>VER 2.1.0 (GOD MODE)</span>
               <div className="h-1 w-1 rounded-full bg-zinc-700"></div>
               <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> SECURE</span>
@@ -162,8 +130,7 @@ function App() {
           </div>
         )}
       </div>
-      </div>
-    </ErrorBoundary>
+    </div>
   );
 }
 
