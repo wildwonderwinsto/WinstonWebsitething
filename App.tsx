@@ -6,20 +6,54 @@ import { Globe, ChevronRight, Tv, ShieldCheck } from 'lucide-react';
 
 type AppMode = 'launcher' | 'streams' | 'searches';
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: Error }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Render Error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-bold text-red-500">Something went wrong</h1>
+            <p className="text-zinc-400">{this.state.error?.message}</p>
+            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white">
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden">
-      
-      {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
-      <GlobalOverlay />
-
-      {/* 2. Main App Content */}
-      <div className="relative z-10 w-full h-full">
-        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden">
         
-        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
+        {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
+        <GlobalOverlay />
+
+        {/* 2. Main App Content */}
+        <div className="relative z-10 w-full h-full">
+          {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
+          
+          {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
         {appMode === 'launcher' && (
           <div className="flex flex-col items-center justify-center min-h-screen p-6 relative overflow-hidden">
@@ -128,7 +162,8 @@ function App() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 
