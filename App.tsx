@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
@@ -11,7 +10,7 @@ function App() {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-x-hidden">
       
       {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
       <GlobalOverlay />
@@ -23,14 +22,14 @@ function App() {
         {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
         {appMode === 'launcher' && (
-          <div className="flex-1 flex flex-col items-center justify-between p-6 relative overflow-hidden">
+          <div className="flex-1 flex flex-col items-center justify-between p-6 relative">
             
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
             <div className="absolute bottom-[-10%] right-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
 
-            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 max-w-6xl">
+            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 max-w-6xl py-12">
               <div className="space-y-4 text-center mt-12 md:mt-0">
                   <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none">
                   Winstons<br className="hidden md:block"/>Launcher
@@ -121,8 +120,8 @@ function App() {
               </div>
             </div>
             
-            {/* Footer - Now properly spaced */}
-            <div className="mt-12 flex items-center gap-4 text-xs font-medium text-zinc-700 select-none pb-2">
+            {/* Footer */}
+            <div className="mt-8 flex items-center gap-4 text-xs font-medium text-zinc-700 select-none pb-4">
               <span>VER 2.1.0 (GOD MODE)</span>
               <div className="h-1 w-1 rounded-full bg-zinc-700"></div>
               <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> SECURE</span>
