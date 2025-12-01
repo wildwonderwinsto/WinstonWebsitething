@@ -3,6 +3,12 @@ import cors from 'cors';
 import axios from 'axios';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path'; // <-- ADDED for serving static files
+import { fileURLToPath } from 'url'; // <-- ADDED for ES module __dirname
+
+// --- SETUP for ES Modules to get __dirname ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,7 +25,7 @@ const PORT = 3000;
 app.use(cors());
 
 // --- SOCKET.IO LOGIC ---
-
+// ... (Your existing socket.io logic is unchanged)
 let users = [];
 let chatEnabled = false; // Default: Chat is hidden
 
@@ -151,6 +157,7 @@ io.on('connection', (socket) => {
 });
 
 // --- PROXY ROUTES ---
+// API routes MUST be defined *before* the static serving and SPA fallback
 
 // Health check
 app.get('/', (req, res) => {
@@ -230,8 +237,23 @@ app.get('/proxy', async (req, res) => {
     }
 });
 
+// --- FRONTEND SERVING (ADDED) ---
+// Serve static files from the 'dist' folder
+const frontendDistPath = path.join(__dirname, 'dist');
+console.log(`[Static] Serving frontend from: ${frontendDistPath}`);
+app.use(express.static(frontendDistPath));
+
+// SPA Fallback: For any route not matched by API or static files,
+// send index.html. This allows client-side routing (e.g., React Router) to handle the URL.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
+// --- END OF ADDED SECTION ---
+
+
 httpServer.listen(PORT, () => {
     console.log(`\n🚀 WinstonStreams Server running at http://localhost:${PORT}`);
     console.log(`   - Socket.io: ENABLED`);
     console.log(`   - Proxy: ENABLED`);
+    console.log(`   - Frontend: SERVING from /dist`); // <-- ADDED for clarity
 });
