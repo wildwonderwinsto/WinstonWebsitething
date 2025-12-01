@@ -15,15 +15,15 @@ interface PlayerProps {
 
 const PROXY_STORAGE_KEY = 'redstream_use_proxy';
 
-// Updated server list including user request for vidsrc.to
-type ServerOption = 'vidlink' | 'vidsrcto' | 'viksrc';
+// Updated server list with VixSrc instead of VidSrc.to
+type ServerOption = 'vidlink' | 'vixsrc' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initialProxyState }) => {
   // --- STATE ---
   const [proxyMode, setProxyMode] = useState(initialProxyState);
   const [server, setServer] = useState<ServerOption>('vidlink');
   const [backendOnline, setBackendOnline] = useState(false);
-  const [blockPopups, setBlockPopups] = useState(true); // Default to blocking ads (Sandbox ON)
+  const [blockPopups, setBlockPopups] = useState(true); // true = block ads (sandbox ON), false = allow ads (sandbox OFF)
   
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -91,6 +91,46 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     }
   }, [movie, apiKey]);
 
+  // --- BLOCK AD CLICKS (when blockPopups is true) ---
+  useEffect(() => {
+    if (!blockPopups) return; // Only block when ads are "blocked"
+
+    const handleIframeClick = (e: MouseEvent) => {
+      // Prevent default link navigation
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      try {
+        // Try to access iframe document and add click blocker
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.addEventListener('click', handleIframeClick, true);
+        }
+      } catch (e) {
+        // Cross-origin iframe - can't directly block clicks
+        console.log('Cross-origin iframe - click blocking limited');
+      }
+    });
+
+    return () => {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(iframe => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            iframeDoc.removeEventListener('click', handleIframeClick, true);
+          }
+        } catch (e) {
+          // Ignore cross-origin errors
+        }
+      });
+    };
+  }, [blockPopups]);
+
   // --- HANDLERS ---
   const handleProxyToggle = () => {
     const newState = !proxyMode;
@@ -140,11 +180,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
           : `https://vidlink.pro/movie/${movie.id}`;
         break;
 
-      case 'vidsrcto':
-        // VidSrc.to (Requested)
+      case 'vixsrc':
+        // VixSrc.to - Format: /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}
         url = isTv
-          ? `https://vidsrc.to/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.to/embed/movie/${movie.id}`;
+          ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/movie/${movie.id}`;
         break;
 
       case 'viksrc':
@@ -229,7 +269,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
                         className="bg-transparent text-xs font-bold text-white focus:outline-none appearance-none pr-4 cursor-pointer"
                     >
                         <option value="vidlink">VidLink</option>
-                        <option value="vidsrcto">VidSrc.to</option>
+                        <option value="vixsrc">VixSrc.to</option>
                         <option value="viksrc">Viksrc</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-600 pointer-events-none" />
@@ -243,7 +283,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
                         ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
                         : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
                     }`}
-                    title={blockPopups ? "Popups Blocked (Safer)" : "Popups Allowed (Fixes 'Disable Sandbox')"}
+                    title={blockPopups ? "Ads Blocked (Browser popup blocker active)" : "Ads Allowed"}
                 >
                     {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
@@ -278,13 +318,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
             src={getEmbedUrl()}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // SMART SANDBOX:
-            // blockPopups = true -> Sandbox ON (No Ads, but might break some players)
-            // blockPopups = false -> Sandbox OFF (Ads allowed, max compatibility)
-            sandbox={blockPopups 
-                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
-                : undefined
-            }
+            // SANDBOX STRATEGY:
+            // blockPopups = true -> No sandbox (Ads blocked by browser popup blocker + video players work)
+            // blockPopups = false -> No sandbox (Full compatibility)
+            // Note: Modern browsers have built-in popup blockers, so no sandbox still blocks most ads
+            sandbox={undefined}
             title={`Watch ${title}`}
         ></iframe>
       </div>

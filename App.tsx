@@ -23,15 +23,15 @@ function App() {
         {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
             {appMode === 'launcher' && (
-               <div className="flex-1 flex flex-col items-center justify-between p-6 relative h-full">
+               <div className="flex-1 flex flex-col items-center justify-between p-6 relative h-full overflow-auto">
             
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
             <div className="absolute top-[-10%] left-1/4 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
             <div className="absolute bottom-[-10%] right-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse"></div>
 
-            <div className="flex-1 w-full flex flex-col items-center justify-center gap-16 max-w-6xl py-12">
-              <div className="space-y-4 text-center mt-12 md:mt-0">
+            <div className="w-full flex flex-col items-center justify-center gap-16 max-w-6xl py-8">
+              <div className="space-y-4 text-center">
                   <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none">
                   Winstons<br className="hidden md:block"/>Launcher
                   </h1>
