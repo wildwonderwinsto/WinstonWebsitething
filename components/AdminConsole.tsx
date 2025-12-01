@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { 
@@ -302,7 +303,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({ socket, onClose, myId }) =>
                              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-600"></div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-4 opacity-30 animate-pulse duration-[3000ms]">
+                        <div className="flex flex-col items-center gap-4 opacity-30 animate-pulse duration-1000">
                            <Globe className="h-12 w-12 lg:h-16 lg:w-16 text-zinc-800" />
                            <div className="text-zinc-800 text-xl lg:text-2xl font-black select-none tracking-[0.5em]">SYSTEM_READY</div>
                         </div>

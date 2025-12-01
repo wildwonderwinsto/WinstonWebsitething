@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
@@ -10,19 +11,19 @@ function App() {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-x-hidden flex flex-col">
       
       {/* 1. Global Overlay: Pranks, Chat, Admin Console - Mounted Everywhere */}
       <GlobalOverlay />
 
       {/* 2. Main App Content */}
-      <div className="relative z-10 w-full h-full min-h-screen flex flex-col">
+      <div className="relative z-10 w-full flex-1 flex flex-col">
         {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
         
         {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
         {appMode === 'launcher' && (
-          <div className="flex-1 flex flex-col items-center justify-between p-6 relative">
+          <div className="flex-1 flex flex-col items-center justify-between p-6 relative min-h-[100dvh]">
             
             {/* Background Ambience */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
@@ -120,12 +121,15 @@ function App() {
               </div>
             </div>
             
-            {/* Footer */}
-            <div className="mt-8 flex items-center gap-4 text-xs font-medium text-zinc-700 select-none pb-4">
-              <span>VER 2.1.0 (GOD MODE)</span>
-              <div className="h-1 w-1 rounded-full bg-zinc-700"></div>
-              <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> SECURE</span>
+            {/* Footer - Pushed to bottom via flex */}
+            <div className="w-full flex justify-center pb-6 mt-8">
+                <div className="flex items-center gap-4 text-xs font-medium text-zinc-700 select-none bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm border border-zinc-800/50">
+                  <span>VER 2.1.0 (GOD MODE)</span>
+                  <div className="h-1 w-1 rounded-full bg-zinc-700"></div>
+                  <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> SECURE</span>
+                </div>
             </div>
+
           </div>
         )}
       </div>

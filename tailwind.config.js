@@ -1,3 +1,4 @@
+
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
@@ -12,7 +13,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        mono: ['monospace'], // Ensure monospaced font works for Admin Console
+        mono: ['monospace'], 
       },
     },
   },
