@@ -160,7 +160,7 @@ io.on('connection', (socket) => {
 // API routes MUST be defined *before* the static serving and SPA fallback
 
 // Health check
-app.get('/', (req, res) => {
+app.get('/status', (req, res) => {
     res.send('WinstonStreams Proxy & Socket Server Online');
 });
 
