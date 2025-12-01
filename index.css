@@ -9,6 +9,16 @@
   }
 }
 
+/* Ensure the app fills the viewport and avoids document-level scrolling */
+html, body, #root {
+  height: 100%;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Custom Scrollbar Utilities */
 .no-scrollbar::-webkit-scrollbar {
     display: none;

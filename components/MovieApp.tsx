@@ -228,7 +228,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
+    <div className="h-full bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
       
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-4 md:p-6 z-50 flex justify-between items-center">

@@ -130,7 +130,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col animate-in fade-in duration-500">
+    <div className="h-full bg-black text-white flex flex-col animate-in fade-in duration-500">
       
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
