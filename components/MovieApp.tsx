@@ -347,7 +347,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
             movie={selectedMovie} 
             onClose={handleClosePlayer} 
             apiKey={settings.tmdbApiKey} 
-            mode={mode} 
         />
       )}
       

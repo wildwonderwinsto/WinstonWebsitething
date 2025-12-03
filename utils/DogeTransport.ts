@@ -1,24 +1,26 @@
-// The static proxy page requested by the user
-export const DOGE_PROXY_URL = "https://wintonswebsiteproxy.onrender.com/indev";
+export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
+
+// Standard Ultraviolet (UV) prefix
+const PROXY_PREFIX = "/uv/service/"; 
 
 /**
- * Transport Logic
+ * Encodes the URL using standard URI encoding.
  * 
- * SCHOOL MODE:
- * Returns the static proxy URL (https://wintonswebsiteproxy.onrender.com/indev)
- * directly, as requested. It does not attempt to encode or wrap the specific
- * movie URL.
+ * This triggers the backend's failsafe decoder:
+ * "if (h < 2 || h % 2) return decodeURIComponent(s);"
  * 
- * HOME/LOCKED MODE:
- * Returns the raw target URL for direct playback.
+ * This bypasses the dynamic key mismatch issues that cause the "Whoops!" loop.
  */
-export function transport(
-  targetUrl: string,
-  mode: "HOME" | "SCHOOL" | "LOCKED"
-): string {
-  if (mode === "SCHOOL") {
-    return DOGE_PROXY_URL;
+function uvEncode(url: string): string {
+  if (!url) return url;
+  return encodeURIComponent(url);
+}
+
+export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED"): string {
+  if (mode === 'HOME' || mode === 'LOCKED') {
+    return targetUrl;
   }
 
-  return targetUrl;
+  // SCHOOL MODE: Return base URL directly (No wrapping/Deep linking)
+  return DOGE_BASE_URL;
 }
