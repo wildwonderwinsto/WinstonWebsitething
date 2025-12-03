@@ -3,73 +3,71 @@ const PROXY_PREFIX = "/uv/service/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
 /**
- * Step 1: Generate the Key (k)
- * Returns Uint8Array to match uv.config.js byte logic
+ * Step 1: Generate the Daily Key (k)
+ * Algorithm: Reverse(Base64(Date + Hostname)).slice(6)
  */
-function getDailyKey(): Uint8Array {
-    // 1. Date (UTC) - Must match server time
-    const date = new Date().toISOString().slice(0, 10);
+function getDailyKey(): string {
+    // 1. Get current date in YYYY-MM-DD
+    const date = new Date().toISOString().split('T')[0];
     
-    // 2. Concatenate
+    // 2. Concatenate Date + Proxy Domain
     const base = date + PROXY_HOSTNAME;
     
-    // 3. Base64
+    // 3. Base64 encode
     const b64 = btoa(base);
     
-    // 4. Reverse
+    // 4. Reverse the string
     const reversed = b64.split('').reverse().join('');
     
-    // 5. Slice(6) and Convert to Bytes
-    // Note: slice(6.7) in JS acts as slice(6)
-    const rawKey = reversed.slice(6);
-    return new TextEncoder().encode(rawKey);
+    // 5. Remove first 6 characters
+    const key = reversed.slice(6);
+    
+    return key;
 }
 
 /**
- * Step 2: XOR Encryption (Byte-Perfect)
+ * Step 2: XOR Encryption
+ * Algorithm: Char ^ KeyChar (Cyclic % 8) -> Hex
  */
 function uvEncode(url: string): string {
     if (!url) return '';
     
-    // CRITICAL FIX: Do NOT encodeURIComponent here.
-    // The backend expects to decrypt the Raw URL (e.g. "https://..."), not "https%3A%2F%2F..."
-    // TextEncoder handles the UTF-8 conversion of the raw string for us.
+    const key = getDailyKey();
+    let encrypted = '';
     
-    try {
-        const keyBytes = getDailyKey();
-        const urlBytes = new TextEncoder().encode(url);
-        let encrypted = '';
+    for (let i = 0; i < url.length; i++) {
+        // 1. Convert char to byte
+        const charCode = url.charCodeAt(i);
         
-        for (let i = 0; i < urlBytes.length; i++) {
-            // Byte-level XOR
-            const byte = urlBytes[i];
-            const keyByte = keyBytes[i % 8]; // Cyclic key
-            
-            const xor = byte ^ keyByte;
-            
-            // Hex padding
-            encrypted += xor.toString(16).padStart(2, '0');
-        }
+        // 2. Get Key Char Code (Cyclic index % 8 as requested)
+        // We use % 8 specifically per your instructions, 
+        // provided the key is at least 8 chars (it will be).
+        const keyChar = key.charCodeAt(i % 8);
         
-        return encrypted;
-    } catch (e) {
-        console.error("Encryption failed", e);
-        return '';
+        // 3. XOR
+        const xor = charCode ^ keyChar;
+        
+        // 4. Convert to 2-digit Hex
+        encrypted += xor.toString(16).padStart(2, '0');
     }
+    
+    return encrypted;
 }
 
 /**
- * Step 3: Final Output
+ * Step 3: Transport Logic
+ * Combines Base + Prefix + Encrypted Hash
  */
-export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED"): string {
-  if (mode === 'HOME' || mode === 'LOCKED') {
+export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" | string): string {
+  // If not in SCHOOL mode, return the raw URL (or handle differently)
+  if (mode !== 'SCHOOL') {
     return targetUrl;
   }
 
   // SCHOOL MODE: Encrypt
   const encryptedHash = uvEncode(targetUrl);
   
-  // Ensure clean base URL
+  // Ensure clean base URL (remove trailing slash if present to avoid double slash)
   const cleanBase = DOGE_BASE_URL.endsWith('/') ? DOGE_BASE_URL.slice(0, -1) : DOGE_BASE_URL;
   
   return `${cleanBase}${PROXY_PREFIX}${encryptedHash}`;

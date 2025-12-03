@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
 import { socket } from './GlobalOverlay';
@@ -14,17 +13,14 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Access global network mode
   const { mode } = useNetwork();
 
   // Report Activity
   useEffect(() => {
-    // Initial report
     socket.emit('update_activity', {
         page: 'WinstonSearches',
         activity: 'Secure Browsing - Idle'
     });
-
     return () => {
         socket.emit('update_activity', {
             page: 'Launcher',
@@ -42,7 +38,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     e.preventDefault();
     if (!query.trim()) return;
     
-    // REPORT ACTIVITY TO GOD MODE
     socket.emit('update_activity', {
         page: 'WinstonSearches',
         activity: `Searching: "${query}"`
@@ -56,12 +51,11 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     if (looksLikeUrl) {
          targetUrl = input.startsWith('http') ? input : `https://${input}`;
     } else {
-         // Smart Engine Selection based on Mode
          if (mode === 'SCHOOL') {
-             // Use DuckDuckGo Lite for School/Proxy mode because it is text-heavy and rarely blocks proxies
+             // DuckDuckGo Lite for School/Proxy mode
              targetUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(input)}`;
          } else {
-             // Use Bing for Home mode because it works best inside the Google Translate wrapper
+             // Bing for Home mode (Translate wrapper)
              targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
          }
     }
@@ -69,12 +63,10 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     let finalUrl = '';
 
     if (mode === 'SCHOOL') {
-        // School mode uses Doge/UV Proxy logic from transport utility
+        // Use the updated DogeTransport logic
         finalUrl = transport(targetUrl, mode);
     } else {
-        // HOME or LOCKED mode
-        // Wrap in Google Translate to bypass X-Frame-Options (White Screen fix)
-        // We act as if we are translating the page to English, which proxies the content.
+        // HOME/LOCKED: Google Translate Bypass
         finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
     }
     
@@ -105,7 +97,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
            <span className="text-sm font-medium text-zinc-400 group-hover:text-white transition">Launcher</span>
         </button>
 
-        {/* Network Badge */}
         <div className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase pointer-events-auto backdrop-blur-md ${
              mode === 'SCHOOL' 
              ? 'bg-white/10 text-white border-white/20' 
@@ -119,13 +110,11 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
 
       <div className="w-full h-full flex flex-col items-center p-4 md:p-8 pt-12 gap-6 overflow-hidden flex-1">
          
-         {/* Dynamic Header */}
          <div className={`flex flex-col items-center gap-6 w-full max-w-4xl transition-all duration-500 z-10 ${searchUrl ? 'mt-4 scale-90' : 'mt-32'}`}>
              <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-blue-500 to-cyan-500 drop-shadow-sm text-center select-none">
                WinstonSearches
              </h1>
              
-             {/* Search Input */}
              <form onSubmit={handleSearch} className="relative w-full group">
                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   {isLoading ? (
@@ -142,14 +131,12 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                   onChange={(e) => setQuery(e.target.value)}
                   className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600"
                   autoFocus
-                  aria-label="Search Input"
                />
                
                {query && (
                  <button 
                     type="button"
                     onClick={clearSearch}
-                    aria-label="Clear Search"
                     className="absolute inset-y-0 right-4 flex items-center text-zinc-500 hover:text-white transition"
                  >
                     <X className="h-5 w-5" />
@@ -158,7 +145,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
              </form>
          </div>
 
-         {/* Results / Iframe */}
          {searchUrl && (
             <div className="flex-1 w-full max-w-7xl bg-white rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500 border border-zinc-800 relative group">
                {isLoading && (

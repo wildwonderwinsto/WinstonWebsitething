@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink, ShieldCheck, Shield } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
-import { transport } from '../utils/DogeTransport';
+// Ensure this path matches your project structure
+import { transport } from '../utils/DogeTransport'; 
 
 interface PlayerProps {
   movie: Movie | null;
@@ -13,16 +14,13 @@ interface PlayerProps {
   apiKey: string;
 }
 
-// Updated server list
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
-  // --- CONTEXT ---
   const { mode } = useNetwork();
-
-  // --- STATE ---
+  
+  // Default server selection based on mode
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
-  // Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors
   const [blockPopups, setBlockPopups] = useState(false);
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -116,7 +114,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const isTv = movie.media_type === 'tv' || !!movie.name;
   const title = movie.title || movie.name;
 
-  // --- EMBED URL LOGIC ---
+  // --- EMBED URL GENERATION ---
   const getEmbedUrl = () => {
     let rawUrl = '';
     
@@ -128,7 +126,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
       
       case 'vixsrcto':
-        // FIXED: Pointing correctly to vixsrc.to as requested
         rawUrl = isTv
           ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vixsrc.to/embed/movie/${movie.id}`;
@@ -141,8 +138,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
     }
     
-    // Encrypt and wrap URL if in SCHOOL mode
-    // (Removed the previous bypass logic, so this now actually uses the proxy)
+    // Apply Transport Proxy if mode is SCHOOL
     return transport(rawUrl, mode);
   };
 
@@ -151,11 +147,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
       
-      {/* --- HEADER CONTROLS --- */}
+      {/* HEADER */}
       <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg">
         <div className="mx-auto max-w-[1920px] flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             
-            {/* Left: Close & Title */}
+            {/* Title Block */}
             <div className="flex items-center gap-4 w-full xl:w-auto">
                 <button 
                     onClick={onClose}
@@ -184,66 +180,46 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                 </div>
             </div>
 
-            {/* Right: Controls */}
+            {/* Controls Block */}
             <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
-                
-                {/* --- TV NAV --- */}
                 {isTv && (
                     <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50">
-                        {/* Prev Button */}
-                        <button 
-                            onClick={handlePrevEpisode} 
-                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
-                            title="Previous Episode"
-                        >
+                        <button onClick={handlePrevEpisode} className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition">
                             <ChevronLeft className="h-4 w-4" />
                         </button>
-
-                        {/* Season Select */}
+                        
+                        {/* Season Dropdown */}
                         <div className="relative group">
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                <Layers className="h-3 w-3" />
-                            </div>
                             <select 
                                 value={season}
                                 onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1); }}
                                 className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-1.5 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 w-24 md:w-32"
                             >
                                 {tvDetails?.seasons?.filter(s => s.season_number > 0).map(s => (
-                                    <option key={s.id} value={s.season_number} className="bg-zinc-900 text-white">
-                                        Season {s.season_number}
-                                    </option>
+                                    <option key={s.id} value={s.season_number}>Season {s.season_number}</option>
                                 ))}
-                                {!tvDetails && <option value="1" className="bg-zinc-900">Season 1</option>}
+                                {!tvDetails && <option value="1">Season 1</option>}
                             </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><Layers className="h-3 w-3" /></div>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
                         </div>
 
-                        {/* Episode Select */}
+                        {/* Episode Dropdown */}
                         <div className="relative group">
-                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                <Play className="h-3 w-3" />
-                            </div>
                             <select 
                                 value={episode}
                                 onChange={(e) => setEpisode(Number(e.target.value))}
                                 className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-1.5 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 w-24 md:w-32"
                             >
                                 {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
-                                    <option key={ep} value={ep} className="bg-zinc-900 text-white">
-                                        Episode {ep}
-                                    </option>
+                                    <option key={ep} value={ep}>Episode {ep}</option>
                                 ))}
                             </select>
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
+                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><Play className="h-3 w-3" /></div>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
                         </div>
 
-                        {/* Next Button */}
-                        <button 
-                            onClick={handleNextEpisode} 
-                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
-                            title="Next Episode"
-                        >
+                        <button onClick={handleNextEpisode} className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition">
                             <ChevronRight className="h-4 w-4" />
                         </button>
                     </div>
@@ -251,22 +227,20 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
                 {/* Server Select */}
                 <div className="relative group">
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <MonitorPlay className="h-3.5 w-3.5" />
-                    </div>
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><MonitorPlay className="h-3.5 w-3.5" /></div>
                     <select 
                         value={server}
                         onChange={(e) => setServer(e.target.value as ServerOption)}
                         className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
                     >
-                        <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                        <option value="vixsrcto" className="bg-zinc-900">VixSrc.to</option>
-                        <option value="viksrc" className="bg-zinc-900">Viksrc</option>
+                        <option value="vidlink">VidLink</option>
+                        <option value="vixsrcto">VixSrc.to</option>
+                        <option value="viksrc">Viksrc</option>
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
                 </div>
 
-                {/* Popup Blocker */}
+                {/* Sandbox Toggle */}
                 <button 
                     onClick={() => setBlockPopups(!blockPopups)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
@@ -274,7 +248,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
                         : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
                     }`}
-                    title={blockPopups ? "Ads Blocked (Sandbox ON)" : "Ads Allowed (Sandbox OFF - Recommended)"}
                 >
                     {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
@@ -283,7 +256,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
       </div>
 
-      {/* --- VIDEO CONTAINER --- */}
+      {/* IFRAME */}
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center z-0">
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
@@ -294,7 +267,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // IMPORTANT: passing undefined removes the attribute entirely, ensuring "Disable Sandbox" compliance
             sandbox={blockPopups 
                 ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
                 : undefined
