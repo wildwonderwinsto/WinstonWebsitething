@@ -45,19 +45,13 @@ function uvEncode(url: string): string {
 }
 
 export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" | string): string {
-    if (!targetUrl) return '';
+    if (mode !== 'SCHOOL') return targetUrl;
 
-    // If not SCHOOL mode, return original URL (Direct Link)
-    if (mode !== 'SCHOOL') {
-        return targetUrl;
-    }
-
-    // SCHOOL MODE: Encrypt
     const encryptedHash = uvEncode(targetUrl);
-
-    // Remove trailing slash from base if present to prevent double slashes
+    
+    // Remove trailing slash from base
     const cleanBase = DOGE_BASE_URL.replace(/\/$/, ""); 
 
-    // Result: https://host.com/uv/service/1a2b3c...
-    return `${cleanBase}${PROXY_PREFIX}${encryptedHash}`;
+    // Point to the loader, using the hash (#) to pass the data
+    return `${cleanBase}/loader.html#${encryptedHash}`;
 }
