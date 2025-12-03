@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink, ShieldCheck, Shield } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
@@ -13,7 +14,7 @@ interface PlayerProps {
   apiKey: string;
 }
 
-// Updated server list: Replaced 'vidsrcsu' with 'vixsrcto'
+// Updated server list: Replaced 'vidsrcsu' with 'vixsrcto' (internally mapped to vidsrc.su now)
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
@@ -21,8 +22,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const { mode } = useNetwork();
 
   // --- STATE ---
-  // Updated default state to use vixsrcto
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
+  // Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors
+  const [blockPopups, setBlockPopups] = useState(false);
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -117,11 +119,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
-    if (mode === 'SCHOOL') {
-        return 'https://wintonswebsiteproxy.onrender.com';
-    }
-
+    // REMOVED BYPASS: We now use the transport function to encrypt the URL properly for the proxy
     let rawUrl = '';
+    
     switch (server) {
       case 'vidlink':
         rawUrl = isTv
@@ -129,11 +129,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidlink.pro/movie/${movie.id}`;
         break;
       
-      // Updated Case for VixSrc.to
       case 'vixsrcto':
+        // Mapped to vidsrc.su as vixsrc.to is currently offline/404
         rawUrl = isTv
-          ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vixsrc.to/embed/movie/${movie.id}`;
+          ? `https://vidsrc.su/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vidsrc.su/embed/movie/${movie.id}`;
         break;
         
       case 'viksrc':
@@ -142,13 +142,15 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
         break;
     }
+    
+    // Encrypt and wrap URL if in SCHOOL mode
     return transport(rawUrl, mode);
   };
 
   const embedSrc = getEmbedUrl();
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
       
       {/* --- HEADER CONTROLS --- */}
       <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg">
@@ -259,12 +261,25 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
                     >
                         <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                        {/* Updated Option Label and Value */}
-                        <option value="vixsrcto" className="bg-zinc-900">VixSrc.to</option>
+                        <option value="vixsrcto" className="bg-zinc-900">VidSrc.su</option>
                         <option value="viksrc" className="bg-zinc-900">Viksrc</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
                 </div>
+
+                {/* Popup Blocker */}
+                <button 
+                    onClick={() => setBlockPopups(!blockPopups)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                    blockPopups 
+                        ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
+                    }`}
+                    title={blockPopups ? "Ads Blocked (Sandbox ON)" : "Ads Allowed (Sandbox OFF - Recommended)"}
+                >
+                    {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
+                </button>
             </div>
         </div>
       </div>
@@ -276,10 +291,15 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
 
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
+            key={`${server}-${movie.id}-${season}-${episode}-${mode}-${blockPopups}`}
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
+            // IMPORTANT: passing undefined removes the attribute entirely, ensuring "Disable Sandbox" compliance
+            sandbox={blockPopups 
+                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
+                : undefined
+            }
             title={`Watch ${title}`}
         ></iframe>
       </div>
