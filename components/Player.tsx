@@ -23,7 +23,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- STATE ---
   // Default to vidsrcto in School Mode for better proxy compatibility
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vidsrcto' : 'vidlink');
-  const [blockPopups, setBlockPopups] = useState(true);
+  
+  // FIXED: Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors on load
+  const [blockPopups, setBlockPopups] = useState(false);
+  
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -236,6 +239,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
+            // IMPORTANT: passing undefined removes the attribute entirely, ensuring "Disable Sandbox" compliance
             sandbox={blockPopups 
                 ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
                 : undefined
