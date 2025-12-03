@@ -1,5 +1,5 @@
 export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
-const PROXY_PREFIX = "/uv/service/";
+const PROXY_PREFIX = "/uv/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
 function getDailyKey(): Uint8Array {
@@ -45,13 +45,17 @@ function uvEncode(url: string): string {
 }
 
 export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" | string): string {
-    if (mode !== 'SCHOOL') return targetUrl;
+    if (!targetUrl) return '';
 
+    // If not SCHOOL mode, return original URL
+    if (mode !== 'SCHOOL') {
+        return targetUrl;
+    }
+
+    // SCHOOL MODE: Encrypt and use loader
     const encryptedHash = uvEncode(targetUrl);
-    
-    // Remove trailing slash from base
     const cleanBase = DOGE_BASE_URL.replace(/\/$/, ""); 
 
-    // Point to the loader, using the hash (#) to pass the data
+    // NEW: Point to loader with hash instead of direct service URL
     return `${cleanBase}/loader.html#${encryptedHash}`;
 }
