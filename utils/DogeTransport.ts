@@ -1,49 +1,24 @@
-export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
-
-const UV_PREFIX = "/uv/service/";
-const UV_CLIENT = "/uv/";
-
-/** 
- * 100% Safe UV Encoding
- * (This works for every deployment: Doge, Holy, Titanium, UV)
- * 
- * If UV fails to encode, the fallback still loads the site cleanly.
- */
-function uvEncode(url: string): string {
-  try {
-    // If UV client-side library exists, use it
-    // @ts-ignore
-    if (window.__uv && window.__uv.encodeUrl) {
-      // @ts-ignore
-      return window.__uv.encodeUrl(url);
-    }
-  } catch (e) {}
-
-  // If encoding fails → use normal encoding (this is valid & supported)
-  return encodeURIComponent(url);
-}
+// The static proxy page requested by the user
+export const DOGE_PROXY_URL = "https://wintonswebsiteproxy.onrender.com/indev";
 
 /**
- * SCHOOL mode → wrap URL in UV proxy.
- * HOME/LOCKED → load normally.
+ * Transport Logic
+ * 
+ * SCHOOL MODE:
+ * Returns the static proxy URL (https://wintonswebsiteproxy.onrender.com/indev)
+ * directly, as requested. It does not attempt to encode or wrap the specific
+ * movie URL.
+ * 
+ * HOME/LOCKED MODE:
+ * Returns the raw target URL for direct playback.
  */
 export function transport(
   targetUrl: string,
   mode: "HOME" | "SCHOOL" | "LOCKED"
 ): string {
-  if (!targetUrl) return targetUrl;
-
-  // NORMAL MODE
-  if (mode !== "SCHOOL") {
-    return targetUrl;
+  if (mode === "SCHOOL") {
+    return DOGE_PROXY_URL;
   }
 
-  // CLEAN BASE URL (remove trailing slash)
-  const cleanBase = DOGE_BASE_URL.replace(/\/+$/, "");
-
-  // ENCODE TARGET SAFELY
-  const encoded = uvEncode(targetUrl);
-
-  // FULL UV PATH (frontend + backend path)
-  return `${cleanBase}${UV_PREFIX}${encoded}`;
+  return targetUrl;
 }
