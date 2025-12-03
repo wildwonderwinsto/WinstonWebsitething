@@ -6,6 +6,8 @@ import { Movie, Settings, MediaType, SortOption, Genre, GenreFilter } from '../t
 import { discoverMedia, searchMovies, getGenres } from '../services/tmdb';
 import { Loader2, Settings as SettingsIcon, Search, ChevronDown, Home } from 'lucide-react';
 import { socket } from './GlobalOverlay';
+// 1. Import the hook to read the state from the Launcher
+import { useNetwork } from '../context/NetworkContext';
 
 const TMDB_STORAGE_KEY = 'redstream_tmdb_key';
 const DEFAULT_API_KEY = '0dd07605b5de27e35ab3e0a14d5854db';
@@ -15,6 +17,9 @@ interface MovieAppProps {
 }
 
 const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
+  // 2. GET THE CURRENT MODE (Set by the Launcher)
+  const { mode } = useNetwork();
+
   // --- State ---
   const [movies, setMovies] = useState<Movie[]>([]);
   const [page, setPage] = useState(1);
@@ -46,14 +51,12 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   }));
 
   // --- FORCE SCROLL UNLOCK ---
-  // This fixes the issue where the scrollbar disappears (stuck overflow: hidden)
   useEffect(() => {
     document.body.style.overflow = 'auto';
     document.body.style.height = 'auto';
     document.documentElement.style.overflow = 'auto';
     document.documentElement.style.height = 'auto';
     
-    // Cleanup ensures we don't leave mess behind, though usually we want 'auto'
     return () => {
       document.body.style.overflow = '';
       document.body.style.height = '';
@@ -93,7 +96,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
         setPage(prevPage => prevPage + 1);
       }
     }, {
-        rootMargin: '400px', // Load more WAY before reaching the bottom
+        rootMargin: '400px',
         threshold: 0
     });
     
@@ -232,7 +235,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   };
 
   return (
-    // Ensure overflow-y-auto is explicit here, and h-auto allows scrolling
     <div className="min-h-screen w-full bg-black text-white overflow-y-auto overflow-x-hidden selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
       
       {/* Top Bar */}
@@ -339,7 +341,16 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {selectedMovie && <Player movie={selectedMovie} onClose={handleClosePlayer} apiKey={settings.tmdbApiKey} />}
+      {/* 3. PASS THE MODE TO THE PLAYER */}
+      {selectedMovie && (
+        <Player 
+            movie={selectedMovie} 
+            onClose={handleClosePlayer} 
+            apiKey={settings.tmdbApiKey} 
+            mode={mode} 
+        />
+      )}
+      
       {showSettings && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
     </div>
   );
