@@ -130,9 +130,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidlink.pro/movie/${movie.id}`;
         break;
       case 'vidsrcto':
+        // Changed to vixsrc.to as requested
         rawUrl = isTv
-          ? `https://vidsrc.to/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.to/embed/movie/${movie.id}`;
+          ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/embed/movie/${movie.id}`;
         break;
       case 'viksrc':
         rawUrl = isTv
@@ -204,7 +205,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         className="bg-transparent text-xs font-bold text-white focus:outline-none appearance-none pr-4 cursor-pointer"
                     >
                         <option value="vidlink">VidLink (Best)</option>
-                        <option value="vidsrcto">VidSrc.to (Proxy Safe)</option>
+                        <option value="vidsrcto">Vixsrc (Proxy Safe)</option>
                         <option value="viksrc">Viksrc (Backup)</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-600 pointer-events-none" />
