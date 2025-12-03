@@ -13,15 +13,16 @@ interface PlayerProps {
   apiKey: string;
 }
 
-// Updated server list with VidSrc.su (more reliable) instead of VixSrc
-type ServerOption = 'vidlink' | 'vidsrcsu' | 'viksrc';
+// Updated server list: Replaced 'vidsrcsu' with 'vixsrcto'
+type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- CONTEXT ---
   const { mode } = useNetwork();
 
   // --- STATE ---
-  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vidsrcsu' : 'vidlink');
+  // Updated default state to use vixsrcto
+  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -127,11 +128,14 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
           : `https://vidlink.pro/movie/${movie.id}`;
         break;
-      case 'vidsrcsu':
+      
+      // Updated Case for VixSrc.to
+      case 'vixsrcto':
         rawUrl = isTv
-          ? `https://vidsrc.su/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.su/embed/movie/${movie.id}`;
+          ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/embed/movie/${movie.id}`;
         break;
+        
       case 'viksrc':
         rawUrl = isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
@@ -255,7 +259,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
                     >
                         <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                        <option value="vidsrcsu" className="bg-zinc-900">VidSrc.su</option>
+                        {/* Updated Option Label and Value */}
+                        <option value="vixsrcto" className="bg-zinc-900">VixSrc.to</option>
                         <option value="viksrc" className="bg-zinc-900">Viksrc</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
