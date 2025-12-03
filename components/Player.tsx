@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
@@ -312,17 +311,12 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
 
-        {/* IFRAME */}
+        {/* IFRAME - Sandbox Attribute Removed */}
         <iframe
             key={`${server}-${movie.id}-${season}-${episode}-${proxyMode}-${blockPopups}`}
             src={getEmbedUrl()}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // SANDBOX STRATEGY:
-            // blockPopups = true -> No sandbox (Ads blocked by browser popup blocker + video players work)
-            // blockPopups = false -> No sandbox (Full compatibility)
-            // Note: Modern browsers have built-in popup blockers, so no sandbox still blocks most ads
-            sandbox={undefined}
             title={`Watch ${title}`}
         ></iframe>
       </div>
