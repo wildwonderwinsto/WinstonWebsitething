@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, Shield, ShieldCheck, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Ban, ExternalLink } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 
@@ -9,20 +9,15 @@ interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
-  useProxy: boolean;
+  useProxy: boolean; // Kept in interface to prevent parent errors, but unused
 }
-
-const PROXY_STORAGE_KEY = 'redstream_use_proxy';
 
 // Updated server list with VixSrc instead of VidSrc.to
 type ServerOption = 'vidlink' | 'vixsrc' | 'viksrc';
 
-const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initialProxyState }) => {
+const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- STATE ---
-  const [proxyMode, setProxyMode] = useState(initialProxyState);
   const [server, setServer] = useState<ServerOption>('vidlink');
-  const [backendOnline, setBackendOnline] = useState(false);
-  const [blockPopups, setBlockPopups] = useState(true); // true = block ads (sandbox ON), false = allow ads (sandbox OFF)
   
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
@@ -57,19 +52,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     }
   }, [movie, season, episode]);
 
-  // --- BACKEND CHECK ---
-  useEffect(() => {
-    const checkBackend = async () => {
-        try {
-            await fetch('http://localhost:3000/');
-            setBackendOnline(true);
-        } catch {
-            setBackendOnline(false);
-        }
-    };
-    checkBackend();
-  }, []);
-
   // --- TV DETAILS ---
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
@@ -90,53 +72,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
     }
   }, [movie, apiKey]);
 
-  // --- BLOCK AD CLICKS (when blockPopups is true) ---
-  useEffect(() => {
-    if (!blockPopups) return; // Only block when ads are "blocked"
-
-    const handleIframeClick = (e: MouseEvent) => {
-      // Prevent default link navigation
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    };
-
-    const iframes = document.querySelectorAll('iframe');
-    iframes.forEach(iframe => {
-      try {
-        // Try to access iframe document and add click blocker
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (iframeDoc) {
-          iframeDoc.addEventListener('click', handleIframeClick, true);
-        }
-      } catch (e) {
-        // Cross-origin iframe - can't directly block clicks
-        console.log('Cross-origin iframe - click blocking limited');
-      }
-    });
-
-    return () => {
-      const iframes = document.querySelectorAll('iframe');
-      iframes.forEach(iframe => {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (iframeDoc) {
-            iframeDoc.removeEventListener('click', handleIframeClick, true);
-          }
-        } catch (e) {
-          // Ignore cross-origin errors
-        }
-      });
-    };
-  }, [blockPopups]);
-
   // --- HANDLERS ---
-  const handleProxyToggle = () => {
-    const newState = !proxyMode;
-    setProxyMode(newState);
-    localStorage.setItem(PROXY_STORAGE_KEY, String(newState));
-  };
-
   const handleNextEpisode = () => {
       const maxEps = getEpisodesForSeason();
       if (episode < maxEps) {
@@ -169,40 +105,27 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
 
   // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
-    let url = '';
-
     switch (server) {
       case 'vidlink':
-        // VidLink: High quality
-        url = isTv
+        return isTv
           ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
           : `https://vidlink.pro/movie/${movie.id}`;
-        break;
 
       case 'vixsrc':
-        // VixSrc.to - Format: /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}
-        url = isTv
+        return isTv
           ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
           : `https://vixsrc.to/movie/${movie.id}`;
-        break;
 
       case 'viksrc':
-        // Viksrc (Backup)
-        url = isTv
+        return isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
-        break;
+        
+      default:
+        return '';
     }
-
-    // Proxy Wrapping (Only works if local backend is running)
-    if (proxyMode && server === 'vidlink' && backendOnline) {
-        return `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`;
-    }
-
-    return url;
   };
 
-  // React Portal to render outside main app hierarchy (avoids overflow/stacking issues)
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col h-[100dvh] w-screen overflow-hidden animate-in fade-in duration-300">
       
@@ -273,33 +196,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
                     </select>
                     <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-600 pointer-events-none" />
                 </div>
-
-                {/* Popup Blocker */}
-                <button 
-                    onClick={() => setBlockPopups(!blockPopups)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    blockPopups 
-                        ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
-                    }`}
-                    title={blockPopups ? "Ads Blocked (Browser popup blocker active)" : "Ads Allowed"}
-                >
-                    {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
-                </button>
-
-                {/* Proxy Toggle */}
-                <button 
-                    onClick={handleProxyToggle}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    proxyMode 
-                        ? 'bg-red-900/20 border-red-500/50 text-red-400' 
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
-                    }`}
-                >
-                    {proxyMode ? <ShieldCheck className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
-                </button>
             </div>
         </div>
       </div>
@@ -311,9 +207,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initi
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
 
-        {/* IFRAME - Sandbox Attribute Removed */}
+        {/* IFRAME - No Proxy, No Adblock, No Sandbox */}
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${proxyMode}-${blockPopups}`}
+            key={`${server}-${movie.id}-${season}-${episode}`}
             src={getEmbedUrl()}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
