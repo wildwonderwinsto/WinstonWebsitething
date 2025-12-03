@@ -5,14 +5,14 @@ import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft } from 'lucide-r
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 
+// --- REMOVED useProxy FROM INTERFACE ---
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
-  useProxy: boolean; // Kept in interface to prevent parent errors, but unused
 }
 
-// Updated server list with VixSrc instead of VidSrc.to
+// Updated server list
 type ServerOption = 'vidlink' | 'vixsrc' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
@@ -207,7 +207,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
 
-        {/* IFRAME - No Proxy, No Adblock, No Sandbox */}
+        {/* IFRAME */}
         <iframe
             key={`${server}-${movie.id}-${season}-${episode}`}
             src={getEmbedUrl()}
