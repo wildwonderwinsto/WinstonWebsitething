@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MovieCard from './MovieCard';
 import Player from './Player';
@@ -24,6 +23,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   
   // View State
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   
   // Filters
   const [mediaType, setMediaType] = useState<MediaType>('all');
@@ -38,31 +38,43 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Settings (Only TMDB Key now)
+  // Settings
   const [settings, setSettings] = useState<Settings>(() => ({
     tmdbApiKey: localStorage.getItem(TMDB_STORAGE_KEY) || DEFAULT_API_KEY,
   }));
 
-  // Report Activity
+  // --- 1. Debounce Search Input ---
+  // This ensures we only trigger a reset/fetch when the user stops typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+        setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // --- 2. Activity Reporting ---
   useEffect(() => {
     if (!selectedMovie) {
         socket.emit('update_activity', {
             page: 'MovieApp',
-            activity: searchQuery ? `Searching: "${searchQuery}"` : 'Browsing Catalog'
+            activity: debouncedSearch ? `Searching: "${debouncedSearch}"` : 'Browsing Catalog'
         });
         document.title = 'WinstonStreams';
     }
-  }, [searchQuery, selectedMovie]);
+  }, [debouncedSearch, selectedMovie]);
 
-  // Refs for Infinite Scroll
+  // --- 3. Infinite Scroll Ref ---
   const observer = useRef<IntersectionObserver | null>(null);
   const lastMovieElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return;
+    if (loading) return; // Don't trigger if already loading
+    
     if (observer.current) observer.current.disconnect();
     
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        setPage(prev => prev + 1);
+        // User reached bottom, load next page
+        setPage(prevPage => prevPage + 1);
       }
     });
     
@@ -70,9 +82,8 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   }, [loading, hasMore]);
 
   // --- Helpers ---
-
   const getDynamicTitle = () => {
-    if (searchQuery) return `Results for "${searchQuery}"`;
+    if (debouncedSearch) return `Results for "${debouncedSearch}"`;
 
     let sortLabel = "Trending";
     if (sortBy === 'vote_average.desc') sortLabel = "Top Rated";
@@ -98,6 +109,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
   // --- Effects ---
 
+  // Load Genres
   useEffect(() => {
     const loadGenres = async () => {
       if (!settings.tmdbApiKey) return;
@@ -143,9 +155,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
           setAvailableGenres(genres);
           setGenreMap({});
         }
-        
-        setSelectedGenreVal('');
-
       } catch (e) {
         console.error("Failed to load genres", e);
       }
@@ -153,26 +162,34 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
     loadGenres();
   }, [mediaType, settings.tmdbApiKey]);
 
+  // --- RESET Filter Effect ---
+  // When filters change, reset page to 1 and clear movies
   useEffect(() => {
     setPage(1);
     setMovies([]);
     setHasMore(true);
-  }, [searchQuery, mediaType, sortBy, selectedGenreVal, settings.tmdbApiKey]);
+    // Note: We do NOT set loading here to avoid UI flashing before the next effect picks it up
+  }, [debouncedSearch, mediaType, sortBy, selectedGenreVal, settings.tmdbApiKey]);
 
+  // --- MAIN FETCH Effect ---
+  // Runs when 'page' changes (or when filters change, because that triggers page=1)
   useEffect(() => {
-    const fetchContent = async () => {
-      // Don't auto-open settings, just return if key is missing
-      if (!settings.tmdbApiKey) {
-        return;
-      }
+    if (!settings.tmdbApiKey) return;
+    
+    // Abort controller to cancel previous requests if filters change fast
+    const controller = new AbortController();
 
+    const fetchContent = async () => {
       setLoading(true);
       try {
         let newMovies: Movie[] = [];
         
-        if (searchQuery.trim()) {
-          newMovies = await searchMovies(searchQuery, page, settings.tmdbApiKey);
-        } else {
+        // 1. Search Mode
+        if (debouncedSearch.trim()) {
+          newMovies = await searchMovies(debouncedSearch, page, settings.tmdbApiKey);
+        } 
+        // 2. Discover Mode
+        else {
           let genreFilter: GenreFilter | null = null;
           if (selectedGenreVal) {
             if (mediaType === 'all' && typeof selectedGenreVal === 'string') {
@@ -186,27 +203,46 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
           newMovies = await discoverMedia(mediaType, sortBy, genreFilter, page, settings.tmdbApiKey);
         }
 
+        // Check if aborted
+        if (controller.signal.aborted) return;
+
+        // Logic for handling empty results vs append
         if (newMovies.length === 0) {
           setHasMore(false);
         } else {
           setMovies(prev => {
-            const current = page === 1 ? [] : prev;
-            // Deduplicate movies based on ID
-            const existingIds = new Set(current.map(m => m.id));
+            // If page is 1, replace entire list. Otherwise append.
+            const currentList = page === 1 ? [] : prev;
+            
+            // Deduplicate logic
+            const existingIds = new Set(currentList.map(m => m.id));
             const uniqueNew = newMovies.filter(m => !existingIds.has(m.id));
-            return [...current, ...uniqueNew];
+            
+            return [...currentList, ...uniqueNew];
           });
+          
+          // If we got fewer than 20 results (TMDB default), we reached the end
+          if (newMovies.length < 20) {
+              setHasMore(false);
+          }
         }
       } catch (error) {
-        console.error("Error fetching movies:", error);
+        if (!controller.signal.aborted) {
+            console.error("Error fetching movies:", error);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+            setLoading(false);
+        }
       }
     };
 
-    const debounceFetch = setTimeout(fetchContent, 500);
-    return () => clearTimeout(debounceFetch);
-  }, [page, searchQuery, mediaType, sortBy, selectedGenreVal, settings.tmdbApiKey, genreMap]);
+    fetchContent();
+
+    return () => controller.abort();
+  }, [page, debouncedSearch, mediaType, sortBy, selectedGenreVal, settings.tmdbApiKey, genreMap]);
+
+  // --- Handlers ---
 
   const handleMovieClick = (movie: Movie) => {
     setSelectedMovie(movie);
@@ -218,10 +254,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
   const handleSaveSettings = (newSettings: Settings) => {
     setSettings(newSettings);
-    // If they clear it, we won't save the default key to LS, we'll save empty string
-    // But on next reload, it will default back to the hardcoded key if LS is empty/null.
-    // If they explicitly save empty string, we might want to respect that or fallback again.
-    // Currently logic: if LS is null, fallback. If LS is "", it is "".
     if (newSettings.tmdbApiKey) {
         localStorage.setItem(TMDB_STORAGE_KEY, newSettings.tmdbApiKey);
     } else {
@@ -232,7 +264,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
       
-      {/* Top Bar - Fixed so it's always accessible */}
+      {/* Top Bar */}
       <div className="fixed top-0 left-0 right-0 p-4 md:p-6 z-50 flex justify-between items-center pointer-events-none bg-gradient-to-b from-black/80 to-transparent">
         <button 
           onClick={onBack}
@@ -275,6 +307,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
            </div>
         </div>
 
+        {/* Filters - Only show if not searching */}
         {!searchQuery && (
           <div className="w-full flex flex-col items-center gap-4 md:gap-6 animate-fade-in px-2">
              <h2 className="text-xl md:text-3xl font-bold text-white tracking-tight text-center">
@@ -283,6 +316,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 bg-zinc-900/50 p-2 rounded-xl border border-zinc-800/50 backdrop-blur-sm w-full md:w-auto">
                 
+                {/* Sort Filter */}
                 <div className="relative group flex-1 md:flex-none">
                   <select
                     value={sortBy}
@@ -297,6 +331,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                   <ChevronDown className="absolute right-2 md:right-3 top-2 md:top-2.5 h-3 w-3 md:h-4 md:w-4 text-zinc-400 pointer-events-none" />
                 </div>
 
+                {/* Media Type Filter */}
                 <div className="relative group flex-1 md:flex-none">
                   <select
                     value={mediaType}
@@ -311,6 +346,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                   <ChevronDown className="absolute right-2 md:right-3 top-2 md:top-2.5 h-3 w-3 md:h-4 md:w-4 text-zinc-400 pointer-events-none" />
                 </div>
 
+                {/* Genre Filter */}
                 <div className="relative group flex-1 md:flex-none basis-full md:basis-auto">
                   <select
                     value={selectedGenreVal}
@@ -344,6 +380,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
         <div className="w-full">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {movies.map((movie, index) => {
+              // Attach Ref to the LAST element for infinite scroll
               if (movies.length === index + 1) {
                 return (
                   <div ref={lastMovieElementRef} key={`${movie.id}-${index}`}>
@@ -364,8 +401,8 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
           {!loading && movies.length === 0 && (
              <div className="flex flex-col items-center justify-center py-20 text-zinc-500 text-center px-4">
-               {searchQuery ? (
-                 <p className="text-lg">No results found for "{searchQuery}"</p>
+               {debouncedSearch ? (
+                 <p className="text-lg">No results found for "{debouncedSearch}"</p>
                ) : (
                   !settings.tmdbApiKey ? (
                     <div className="text-center space-y-4">
@@ -387,6 +424,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
           movie={selectedMovie} 
           onClose={handleClosePlayer} 
           apiKey={settings.tmdbApiKey}
+          // Removed useProxy prop based on cleanup request
         />
       )}
 
