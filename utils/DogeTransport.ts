@@ -1,6 +1,6 @@
-export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
+export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com/indev";
 const PROXY_PREFIX = "/uv/service/";
-const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
+const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com/indev";
 
 function getDailyKey(): Uint8Array {
     // 1. Get current date (UTC)
