@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
@@ -14,7 +13,7 @@ interface PlayerProps {
   apiKey: string;
 }
 
-// Updated server list: Replaced 'vidsrcsu' with 'vixsrcto' (internally mapped to vidsrc.su now)
+// Updated server list
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
@@ -119,7 +118,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
-    // REMOVED BYPASS: We now use the transport function to encrypt the URL properly for the proxy
     let rawUrl = '';
     
     switch (server) {
@@ -130,10 +128,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
       
       case 'vixsrcto':
-        // Mapped to vidsrc.su as vixsrc.to is currently offline/404
+        // FIXED: Pointing correctly to vixsrc.to as requested
         rawUrl = isTv
-          ? `https://vidsrc.su/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.su/embed/movie/${movie.id}`;
+          ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/embed/movie/${movie.id}`;
         break;
         
       case 'viksrc':
@@ -144,6 +142,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
     
     // Encrypt and wrap URL if in SCHOOL mode
+    // (Removed the previous bypass logic, so this now actually uses the proxy)
     return transport(rawUrl, mode);
   };
 
@@ -261,7 +260,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
                     >
                         <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                        <option value="vixsrcto" className="bg-zinc-900">VidSrc.su</option>
+                        <option value="vixsrcto" className="bg-zinc-900">VixSrc.to</option>
                         <option value="viksrc" className="bg-zinc-900">Viksrc</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
