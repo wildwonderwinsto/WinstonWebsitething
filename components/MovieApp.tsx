@@ -1,14 +1,15 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MovieCard from './MovieCard';
 import Player from './Player';
 import SettingsModal from './SettingsModal';
 import { Movie, Settings, MediaType, SortOption, Genre, GenreFilter } from '../types';
 import { discoverMedia, searchMovies, getGenres } from '../services/tmdb';
-import { Loader2, Settings as SettingsIcon, Search, ChevronDown, Filter, ChevronLeft, Home } from 'lucide-react';
-import { socket } from './GlobalOverlay'; // Import socket
+import { Loader2, Settings as SettingsIcon, Search, ChevronDown, Home } from 'lucide-react';
+import { socket } from './GlobalOverlay';
 
 const TMDB_STORAGE_KEY = 'redstream_tmdb_key';
-const PROXY_STORAGE_KEY = 'redstream_use_proxy';
+const DEFAULT_API_KEY = '0dd07605b5de27e35ab3e0a14d5854db';
 
 interface MovieAppProps {
   onBack: () => void;
@@ -37,10 +38,9 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   
-  // Settings
+  // Settings (Only TMDB Key now)
   const [settings, setSettings] = useState<Settings>(() => ({
-    tmdbApiKey: localStorage.getItem(TMDB_STORAGE_KEY) || process.env.TMDB_API_KEY || '',
-    useProxy: localStorage.getItem(PROXY_STORAGE_KEY) === 'true',
+    tmdbApiKey: localStorage.getItem(TMDB_STORAGE_KEY) || DEFAULT_API_KEY,
   }));
 
   // Report Activity
@@ -214,27 +214,30 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
   const handleClosePlayer = () => {
     setSelectedMovie(null);
-    // Reload proxy setting in case it changed inside player
-    const updatedProxy = localStorage.getItem(PROXY_STORAGE_KEY) === 'true';
-    if (updatedProxy !== settings.useProxy) {
-        setSettings(prev => ({ ...prev, useProxy: updatedProxy }));
-    }
   };
 
   const handleSaveSettings = (newSettings: Settings) => {
     setSettings(newSettings);
-    localStorage.setItem(TMDB_STORAGE_KEY, newSettings.tmdbApiKey);
-    localStorage.setItem(PROXY_STORAGE_KEY, String(newSettings.useProxy));
+    // If they clear it, we won't save the default key to LS, we'll save empty string
+    // But on next reload, it will default back to the hardcoded key if LS is empty/null.
+    // If they explicitly save empty string, we might want to respect that or fallback again.
+    // Currently logic: if LS is null, fallback. If LS is "", it is "".
+    if (newSettings.tmdbApiKey) {
+        localStorage.setItem(TMDB_STORAGE_KEY, newSettings.tmdbApiKey);
+    } else {
+        localStorage.removeItem(TMDB_STORAGE_KEY);
+    }
   };
 
   return (
-    <div className="h-full bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
+    <div className="min-h-screen bg-black text-white selection:bg-red-600 selection:text-white flex flex-col items-center animate-in fade-in duration-500">
       
-      {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-4 md:p-6 z-50 flex justify-between items-center">
+      {/* Top Bar - Fixed so it's always accessible */}
+      <div className="fixed top-0 left-0 right-0 p-4 md:p-6 z-50 flex justify-between items-center pointer-events-none bg-gradient-to-b from-black/80 to-transparent">
         <button 
           onClick={onBack}
-          className="group relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md flex items-center gap-2 pr-4"
+          aria-label="Back to Launcher"
+          className="group pointer-events-auto relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md flex items-center gap-2 pr-4"
         >
            <Home className="h-4 w-4 md:h-5 md:w-5 text-zinc-400 group-hover:text-white transition" />
            <span className="text-xs md:text-sm font-medium text-zinc-400 group-hover:text-white transition hidden sm:inline">Launcher</span>
@@ -242,13 +245,14 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
         <button 
           onClick={() => setShowSettings(true)} 
-          className="group relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md"
+          aria-label="Open Settings"
+          className="group pointer-events-auto relative rounded-full bg-zinc-900/50 p-2 md:p-3 hover:bg-zinc-800 transition backdrop-blur-md"
         >
            <SettingsIcon className="h-5 w-5 md:h-6 md:w-6 text-zinc-400 group-hover:text-white transition-transform group-hover:rotate-90" />
         </button>
       </div>
 
-      <div className="w-full max-w-7xl px-4 md:px-8 py-12 flex flex-col items-center gap-8 mt-8">
+      <div className="w-full max-w-7xl px-4 md:px-8 py-12 flex flex-col items-center gap-8 mt-16 md:mt-12">
         
         {/* Header */}
         <div className="flex flex-col items-center gap-4 md:gap-6 w-full max-w-4xl px-2">
@@ -266,6 +270,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-3 md:py-4 pl-12 pr-6 text-base md:text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition shadow-xl"
+                aria-label="Search Input"
              />
            </div>
         </div>
@@ -282,6 +287,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    aria-label="Sort By"
                     className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[120px]"
                   >
                     <option value="popularity.desc">Trending</option>
@@ -295,6 +301,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                   <select
                     value={mediaType}
                     onChange={(e) => setMediaType(e.target.value as MediaType)}
+                    aria-label="Media Type"
                     className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[120px]"
                   >
                     <option value="all">All Types</option>
@@ -315,6 +322,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
                         setSelectedGenreVal(val ? Number(val) : '');
                       }
                     }}
+                    aria-label="Filter Genre"
                     className="w-full appearance-none bg-zinc-900 text-white pl-3 md:pl-4 pr-8 md:pr-10 py-2 rounded-lg text-xs md:text-sm font-medium border border-zinc-700 hover:border-zinc-500 focus:ring-2 focus:ring-red-600 focus:outline-none transition cursor-pointer min-w-[140px]"
                   >
                     <option value="">All Genres</option>
@@ -379,7 +387,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
           movie={selectedMovie} 
           onClose={handleClosePlayer} 
           apiKey={settings.tmdbApiKey}
-          useProxy={settings.useProxy}
         />
       )}
 

@@ -55,16 +55,15 @@ export enum ViewState {
 
 export interface Settings {
   tmdbApiKey: string;
-  useProxy: boolean;
-}
-
-export type ProxyEngine = 'translate' | 'wayback' | 'local';
-
-export interface SearchSettings {
-  proxyMode: boolean;
-  proxyEngine: ProxyEngine;
 }
 
 export type SortOption = 'popularity.desc' | 'vote_average.desc' | 'primary_release_date.desc';
 export type MediaType = 'movie' | 'tv' | 'all';
 export type GenreFilter = number | { movie?: number; tv?: number };
+
+export type ProxyEngine = 'local' | 'translate' | 'wayback';
+
+export interface SearchSettings {
+  proxyMode: boolean;
+  proxyEngine: ProxyEngine;
+}

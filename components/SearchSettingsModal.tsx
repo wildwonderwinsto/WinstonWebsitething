@@ -70,11 +70,11 @@ const SearchSettingsModal: React.FC<SearchSettingsModalProps> = ({ settings, onS
                    onClick={() => setProxyEngine('local')}
                    className={`relative flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
                      proxyEngine === 'local' 
-                     ? 'bg-purple-900/20 border-purple-500/50 ring-1 ring-purple-500/50' 
+                     ? 'bg-cyan-900/20 border-cyan-500/50 ring-1 ring-cyan-500/50' 
                      : 'bg-zinc-900 border-zinc-800 hover:bg-zinc-800'
                    }`}
                 >
-                    <div className={`p-2 rounded-md ${proxyEngine === 'local' ? 'bg-purple-500 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+                    <div className={`p-2 rounded-md ${proxyEngine === 'local' ? 'bg-cyan-500 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
                        <Server className="h-4 w-4" />
                     </div>
                     <div className="flex-1">

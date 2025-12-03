@@ -1,14 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import axios from 'axios';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import path from 'path'; // <-- ADDED for serving static files
-import { fileURLToPath } from 'url'; // <-- ADDED for ES module __dirname
-
-// --- SETUP for ES Modules to get __dirname ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,8 +17,8 @@ const PORT = 3000;
 // Enable CORS
 app.use(cors());
 
-// --- SOCKET.IO LOGIC ---
-// ... (Your existing socket.io logic is unchanged)
+// --- SOCKET.IO LOGIC (GOD MODE) ---
+
 let users = [];
 let chatEnabled = false; // Default: Chat is hidden
 
@@ -156,104 +149,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// --- PROXY ROUTES ---
-// API routes MUST be defined *before* the static serving and SPA fallback
-
 // Health check
-app.get('/status', (req, res) => {
-    res.send('WinstonStreams Proxy & Socket Server Online');
+app.get('/', (req, res) => {
+    res.send('WinstonStreams Socket Server Online');
 });
-
-// Advanced Proxy Endpoint
-app.get('/proxy', async (req, res) => {
-    const { url } = req.query;
-
-    if (!url || typeof url !== 'string') {
-        return res.status(400).send('URL parameter is required');
-    }
-
-    try {
-        const targetUrl = new URL(url);
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Referer': targetUrl.origin,
-            'Origin': targetUrl.origin
-        };
-
-        if (req.headers.range) {
-            headers['Range'] = req.headers.range;
-        }
-
-        const response = await axios({
-            method: 'get',
-            url: url,
-            responseType: 'stream',
-            headers: headers,
-            validateStatus: () => true,
-            maxRedirects: 5,
-            decompress: false
-        });
-
-        res.status(response.status);
-
-        const headersToForward = [
-            'content-type',
-            'content-length',
-            'content-range',
-            'accept-ranges',
-            'last-modified',
-            'etag'
-        ];
-
-        Object.keys(response.headers).forEach(key => {
-            if (headersToForward.includes(key.toLowerCase())) {
-                res.setHeader(key, response.headers[key]);
-            }
-        });
-
-        const contentType = response.headers['content-type'];
-        if (contentType && contentType.includes('text/html')) {
-            let htmlBuffer = '';
-            response.data.on('data', (chunk) => { htmlBuffer += chunk.toString(); });
-            response.data.on('end', () => {
-                htmlBuffer = htmlBuffer.replace(/<meta[^>]*http-equiv=["']X-Frame-Options["'][^>]*>/gi, '');
-                const baseTag = `<base href="${url}">`;
-                if (htmlBuffer.includes('<head>')) {
-                    htmlBuffer = htmlBuffer.replace('<head>', `<head>${baseTag}`);
-                } else {
-                    htmlBuffer = baseTag + htmlBuffer;
-                }
-                res.send(htmlBuffer);
-            });
-        } else {
-            response.data.pipe(res);
-        }
-
-    } catch (error) {
-        console.error(`❌ Proxy Error for ${url}:`, error.message);
-        if (!res.headersSent) {
-            res.status(500).send(`Proxy Error: ${error.message}`);
-        }
-    }
-});
-
-// --- FRONTEND SERVING (ADDED) ---
-// Serve static files from the 'dist' folder
-const frontendDistPath = path.join(__dirname, 'dist');
-console.log(`[Static] Serving frontend from: ${frontendDistPath}`);
-app.use(express.static(frontendDistPath));
-
-// SPA Fallback: For any route not matched by API or static files,
-// send index.html. This allows client-side routing (e.g., React Router) to handle the URL.
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
-});
-// --- END OF ADDED SECTION ---
-
 
 httpServer.listen(PORT, () => {
     console.log(`\n🚀 WinstonStreams Server running at http://localhost:${PORT}`);
     console.log(`   - Socket.io: ENABLED`);
-    console.log(`   - Proxy: ENABLED`);
-    console.log(`   - Frontend: SERVING from /dist`); // <-- ADDED for clarity
+    console.log(`   - Proxy: DISABLED (Removed)`);
 });

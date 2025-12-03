@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { X, MessageSquare, Send, User } from 'lucide-react';
+import { X, MessageSquare, Send, User, Fingerprint } from 'lucide-react';
 import AdminConsole from './AdminConsole';
 
 // Connect to backend
@@ -347,28 +348,50 @@ export const GlobalOverlay: React.FC = () => {
       </div>
 
       {showNameModal && (
-        <div className="fixed inset-0 z-[9000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-500">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-center mb-6">
-               <div className="p-4 bg-zinc-800 rounded-full">
-                 <User className="h-8 w-8 text-white" />
-               </div>
+        <div className="fixed inset-0 z-[9000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-700">
+          
+          {/* Main Card Container */}
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-zinc-900/80 ring-1 ring-white/10 shadow-2xl p-8 animate-in zoom-in-95 slide-in-from-bottom-8 duration-700">
+            
+            {/* Ambient Background Effects */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+            <div className="absolute -top-24 -left-24 w-48 h-48 bg-red-600/20 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
+            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
+
+            {/* Content */}
+            <div className="relative z-10 flex flex-col items-center">
+                <div className="mb-8 rounded-2xl bg-black/50 p-4 ring-1 ring-white/10 shadow-2xl backdrop-blur-md">
+                   <Fingerprint className="h-10 w-10 text-white" />
+                </div>
+                
+                <h2 className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 mb-2 select-none">
+                  IDENTITY REQUIRED
+                </h2>
+                <p className="text-zinc-500 font-medium tracking-[0.2em] uppercase text-xs mb-10 select-none">
+                  ESTABLISH SECURE UPLINK
+                </p>
+
+                <form onSubmit={handleSetIdentity} className="w-full space-y-4">
+                   <div className="group relative">
+                      <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-red-500/50 to-blue-500/50 opacity-0 transition duration-500 group-focus-within:opacity-100 blur"></div>
+                      <input 
+                        type="text" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="ENTER CODENAME"
+                        className="relative w-full bg-black text-white placeholder:text-zinc-700 font-mono text-sm px-6 py-4 rounded-xl border border-zinc-800 focus:outline-none focus:border-transparent transition-all shadow-inner text-center tracking-widest uppercase"
+                        autoFocus
+                      />
+                   </div>
+                   
+                   <button 
+                     type="submit" 
+                     className="w-full py-4 rounded-xl bg-white text-black font-bold tracking-widest uppercase text-xs hover:bg-zinc-200 transition-transform active:scale-95 shadow-lg shadow-white/5"
+                   >
+                     Initialize Session
+                   </button>
+                </form>
             </div>
-            <h2 className="text-2xl font-bold text-center text-white mb-2">Identify Yourself</h2>
-            <p className="text-zinc-400 text-center mb-6">Join the WinstonStreams network.</p>
-            <form onSubmit={handleSetIdentity}>
-              <input 
-                type="text" 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter Codename..."
-                className="w-full bg-black border border-zinc-700 rounded-lg px-4 py-3 text-white mb-4 focus:border-blue-500 focus:outline-none transition-colors"
-                autoFocus
-              />
-              <button type="submit" className="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-zinc-200 transition-colors">
-                Enter System
-              </button>
-            </form>
           </div>
         </div>
       )}
