@@ -3,18 +3,23 @@ const PROXY_PREFIX = "/uv/service/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
 function getDailyKey(): Uint8Array {
-    // 1. UTC Date (YYYY-MM-DD)
+    // 1. Get current date (UTC)
     const date = new Date().toISOString().slice(0, 10);
     
-    // 2. Base64(Date + Host) -> Reverse -> Slice(6)
+    // 2. Concatenate Date + Host
     const rawInput = date + PROXY_HOSTNAME;
-    const b64 = typeof btoa === 'function' 
-        ? btoa(rawInput) 
-        : Buffer.from(rawInput).toString('base64'); // Node.js fallback just in case
-        
+    
+    // 3. Base64 Encode (Standard browser function)
+    // No Buffer fallback needed for simple strings like this
+    const b64 = btoa(rawInput);
+    
+    // 4. Reverse
     const reversed = b64.split('').reverse().join('');
+    
+    // 5. Remove first 6 chars
     const keyString = reversed.slice(6);
     
+    // 6. Return as Bytes
     return new TextEncoder().encode(keyString);
 }
 
