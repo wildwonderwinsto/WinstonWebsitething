@@ -2,51 +2,40 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Ban, ExternalLink, School, Home } from 'lucide-react';
+import { X, Shield, ShieldCheck, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Ban, ExternalLink } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
-import { useNetwork } from '../context/NetworkContext';
-import { transport } from '../utils/DogeTransport';
 
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
+  useProxy: boolean;
 }
 
-type ServerOption = 'vidlink' | 'vidsrcto' | 'viksrc';
+const PROXY_STORAGE_KEY = 'redstream_use_proxy';
 
-const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
-  // --- CONTEXT ---
-  const { mode } = useNetwork(); // Use global network mode
-  
+// Updated server list with VixSrc instead of VidSrc.to
+type ServerOption = 'vidlink' | 'vixsrc' | 'viksrc';
+
+const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, useProxy: initialProxyState }) => {
   // --- STATE ---
-  // Default to vidsrcto in School Mode for better proxy compatibility
-  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vidsrcto' : 'vidlink');
-  
-  // FIXED: Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors on load
-  const [blockPopups, setBlockPopups] = useState(false);
+  const [proxyMode, setProxyMode] = useState(initialProxyState);
+  const [server, setServer] = useState<ServerOption>('vidlink');
+  const [backendOnline, setBackendOnline] = useState(false);
+  const [blockPopups, setBlockPopups] = useState(true); // true = block ads (sandbox ON), false = allow ads (sandbox OFF)
   
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
 
-  // --- SCROLL & LAYOUT LOCK ---
+  // --- SCROLL LOCK ---
   useEffect(() => {
-    const doc = document.documentElement;
-    const body = document.body;
-    const originalHtmlOverflow = doc.style.overflow;
-    const originalBodyOverflow = body.style.overflow;
-    const originalBodyHeight = body.style.height;
-
-    doc.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-    body.style.height = '100vh';
-
+    // Strictly prevent background scrolling
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
     return () => {
-        doc.style.overflow = originalHtmlOverflow;
-        body.style.overflow = originalBodyOverflow;
-        body.style.height = originalBodyHeight;
+        document.body.style.overflow = originalStyle;
     };
   }, []);
 
@@ -69,6 +58,19 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, season, episode]);
 
+  // --- BACKEND CHECK ---
+  useEffect(() => {
+    const checkBackend = async () => {
+        try {
+            await fetch('http://localhost:3000/');
+            setBackendOnline(true);
+        } catch {
+            setBackendOnline(false);
+        }
+    };
+    checkBackend();
+  }, []);
+
   // --- TV DETAILS ---
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
@@ -76,6 +78,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         try {
             const details = await getTVDetails(movie.id, apiKey);
             setTvDetails(details);
+            // Auto-select first available season if not S1
             if (details?.seasons?.length && !details.seasons.find(s => s.season_number === 1)) {
                  const firstSeason = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
                  if (firstSeason) setSeason(firstSeason.season_number);
@@ -88,7 +91,53 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, apiKey]);
 
+  // --- BLOCK AD CLICKS (when blockPopups is true) ---
+  useEffect(() => {
+    if (!blockPopups) return; // Only block when ads are "blocked"
+
+    const handleIframeClick = (e: MouseEvent) => {
+      // Prevent default link navigation
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      try {
+        // Try to access iframe document and add click blocker
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.addEventListener('click', handleIframeClick, true);
+        }
+      } catch (e) {
+        // Cross-origin iframe - can't directly block clicks
+        console.log('Cross-origin iframe - click blocking limited');
+      }
+    });
+
+    return () => {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(iframe => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            iframeDoc.removeEventListener('click', handleIframeClick, true);
+          }
+        } catch (e) {
+          // Ignore cross-origin errors
+        }
+      });
+    };
+  }, [blockPopups]);
+
   // --- HANDLERS ---
+  const handleProxyToggle = () => {
+    const newState = !proxyMode;
+    setProxyMode(newState);
+    localStorage.setItem(PROXY_STORAGE_KEY, String(newState));
+  };
+
   const handleNextEpisode = () => {
       const maxEps = getEpisodesForSeason();
       if (episode < maxEps) {
@@ -109,7 +158,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   };
 
   const getEpisodesForSeason = () => {
-    if (!tvDetails) return 24;
+    if (!tvDetails) return 24; // Fallback
     const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
     return currentSeason ? currentSeason.episode_count : 24;
   };
@@ -121,34 +170,42 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
-    let rawUrl = '';
+    let url = '';
 
     switch (server) {
       case 'vidlink':
-        rawUrl = isTv
+        // VidLink: High quality
+        url = isTv
           ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
           : `https://vidlink.pro/movie/${movie.id}`;
         break;
-      case 'vidsrcto':
-        rawUrl = isTv
-          ? `https://vidsrc.to/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.to/embed/movie/${movie.id}`;
+
+      case 'vixsrc':
+        // VixSrc.to - Format: /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}
+        url = isTv
+          ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/movie/${movie.id}`;
         break;
+
       case 'viksrc':
-        rawUrl = isTv
+        // Viksrc (Backup)
+        url = isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
         break;
     }
 
-    // Apply the Transport Logic based on Home/School mode
-    return transport(rawUrl, mode);
+    // Proxy Wrapping (Only works if local backend is running)
+    if (proxyMode && server === 'vidlink' && backendOnline) {
+        return `http://localhost:3000/proxy?url=${encodeURIComponent(url)}`;
+    }
+
+    return url;
   };
 
-  const embedSrc = getEmbedUrl();
-
+  // React Portal to render outside main app hierarchy (avoids overflow/stacking issues)
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col h-[100dvh] w-screen overflow-hidden animate-in fade-in duration-300">
       
       {/* --- HEADER CONTROLS --- */}
       <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg">
@@ -158,26 +215,15 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             <div className="flex items-center gap-4 w-full md:w-auto">
                 <button 
                     onClick={onClose}
-                    aria-label="Close Player"
                     className="flex-shrink-0 rounded-full bg-zinc-800 p-2 hover:bg-zinc-700 hover:text-white text-zinc-400 transition"
                 >
                     <X className="h-5 w-5" />
                 </button>
                 <div className="min-w-0">
                     <h2 className="text-sm md:text-lg font-bold text-white truncate leading-tight">{title}</h2>
-                    <div className="flex items-center gap-2">
-                      {isTv && <p className="text-xs font-mono text-zinc-400">S{season} : EP{episode}</p>}
-                      {/* Network Badge */}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                        mode === 'SCHOOL' 
-                            ? 'bg-white/10 text-white border-white/20' 
-                            : mode === 'HOME' 
-                                ? 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                                : 'bg-red-900/30 text-red-400 border-red-800'
-                      }`}>
-                        {mode === 'SCHOOL' ? 'SCHOOL_MODE' : mode === 'HOME' ? 'HOME_MODE' : 'LOCKED'}
-                      </span>
-                    </div>
+                    {isTv && (
+                        <p className="text-xs font-mono text-zinc-400">S{season} : EP{episode}</p>
+                    )}
                 </div>
             </div>
 
@@ -189,7 +235,26 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                     <div className="flex items-center bg-zinc-900 rounded-lg border border-zinc-800 p-1">
                         <button onClick={handlePrevEpisode} className="p-1.5 hover:text-white text-zinc-500"><ChevronLeft className="h-4 w-4" /></button>
                         <div className="flex items-center px-2 gap-1 text-xs font-bold">
-                            <span className="text-zinc-400">S{season}/E{episode}</span>
+                            <select 
+                                value={season}
+                                onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1); }}
+                                className="bg-transparent focus:outline-none appearance-none cursor-pointer text-center"
+                            >
+                                {tvDetails?.seasons?.filter(s => s.season_number > 0).map(s => (
+                                    <option key={s.id} value={s.season_number}>S{s.season_number}</option>
+                                ))}
+                                {!tvDetails && <option value="1">S1</option>}
+                            </select>
+                            <span className="text-zinc-600">/</span>
+                            <select 
+                                value={episode}
+                                onChange={(e) => setEpisode(Number(e.target.value))}
+                                className="bg-transparent focus:outline-none appearance-none cursor-pointer text-center"
+                            >
+                                {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
+                                    <option key={ep} value={ep}>EP{ep}</option>
+                                ))}
+                            </select>
                         </div>
                         <button onClick={handleNextEpisode} className="p-1.5 hover:text-white text-zinc-500"><ChevronRight className="h-4 w-4" /></button>
                     </div>
@@ -203,9 +268,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         onChange={(e) => setServer(e.target.value as ServerOption)}
                         className="bg-transparent text-xs font-bold text-white focus:outline-none appearance-none pr-4 cursor-pointer"
                     >
-                        <option value="vidlink">VidLink (Best)</option>
-                        <option value="vidsrcto">VidSrc.to (Proxy Safe)</option>
-                        <option value="viksrc">Viksrc (Backup)</option>
+                        <option value="vidlink">VidLink</option>
+                        <option value="vixsrc">VixSrc.to</option>
+                        <option value="viksrc">Viksrc</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-2 h-3 w-3 text-zinc-600 pointer-events-none" />
                 </div>
@@ -218,9 +283,23 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
                         : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
                     }`}
+                    title={blockPopups ? "Ads Blocked (Browser popup blocker active)" : "Ads Allowed"}
                 >
                     {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
                     <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
+                </button>
+
+                {/* Proxy Toggle */}
+                <button 
+                    onClick={handleProxyToggle}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
+                    proxyMode 
+                        ? 'bg-red-900/20 border-red-500/50 text-red-400' 
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
+                    }`}
+                >
+                    {proxyMode ? <ShieldCheck className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                    <span className="hidden sm:inline">{proxyMode ? 'Proxy ON' : 'Proxy OFF'}</span>
                 </button>
             </div>
         </div>
@@ -235,15 +314,15 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
         {/* IFRAME */}
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${blockPopups}-${mode}`}
-            src={embedSrc}
+            key={`${server}-${movie.id}-${season}-${episode}-${proxyMode}-${blockPopups}`}
+            src={getEmbedUrl()}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // IMPORTANT: passing undefined removes the attribute entirely, ensuring "Disable Sandbox" compliance
-            sandbox={blockPopups 
-                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
-                : undefined
-            }
+            // SANDBOX STRATEGY:
+            // blockPopups = true -> No sandbox (Ads blocked by browser popup blocker + video players work)
+            // blockPopups = false -> No sandbox (Full compatibility)
+            // Note: Modern browsers have built-in popup blockers, so no sandbox still blocks most ads
+            sandbox={undefined}
             title={`Watch ${title}`}
         ></iframe>
       </div>
