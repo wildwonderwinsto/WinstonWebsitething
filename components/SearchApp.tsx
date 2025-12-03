@@ -15,7 +15,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   
   const { mode } = useNetwork();
 
-  // Report Activity
   useEffect(() => {
     socket.emit('update_activity', {
         page: 'WinstonSearches',
@@ -52,10 +51,10 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
          targetUrl = input.startsWith('http') ? input : `https://${input}`;
     } else {
          if (mode === 'SCHOOL') {
-             // DuckDuckGo Lite for School/Proxy mode
+             // DuckDuckGo Lite is great for proxy text rendering
              targetUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(input)}`;
          } else {
-             // Bing for Home mode (Translate wrapper)
+             // Bing for Home mode (via Translate wrapper)
              targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
          }
     }
@@ -63,10 +62,10 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     let finalUrl = '';
 
     if (mode === 'SCHOOL') {
-        // Use the updated DogeTransport logic
+        // ENCRYPT VIA PROXY
         finalUrl = transport(targetUrl, mode);
     } else {
-        // HOME/LOCKED: Google Translate Bypass
+        // GOOGLE TRANSLATE BYPASS (HOME/LOCKED)
         finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
     }
     
@@ -86,7 +85,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col animate-in fade-in duration-500">
       
-      {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
         <button 
           onClick={onBack}
