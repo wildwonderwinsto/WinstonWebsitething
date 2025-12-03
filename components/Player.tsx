@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
@@ -19,7 +19,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const { mode } = useNetwork();
   
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
-  const [blockPopups, setBlockPopups] = useState(false);
+  // Removed: blockPopups state (we will block them on the server/proxy side instead)
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -225,18 +225,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
                 </div>
-
-                <button 
-                    onClick={() => setBlockPopups(!blockPopups)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    blockPopups 
-                        ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
-                    }`}
-                >
-                    {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
-                </button>
             </div>
         </div>
       </div>
@@ -247,14 +235,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
 
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${mode}-${blockPopups}`}
+            key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            sandbox={blockPopups 
-                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
-                : undefined
-            }
+            // REMOVED: sandbox="..." (This fixes the Invalid MessagePort error)
             title={`Watch ${title}`}
         ></iframe>
       </div>
