@@ -9,8 +9,7 @@ function getDailyKey(): Uint8Array {
     // 2. Concatenate Date + Host
     const rawInput = date + PROXY_HOSTNAME;
     
-    // 3. Base64 Encode (Standard browser function)
-    // No Buffer fallback needed for simple strings like this
+    // 3. Base64 Encode
     const b64 = btoa(rawInput);
     
     // 4. Reverse
@@ -38,8 +37,6 @@ function uvEncode(url: string): string {
         return encrypted;
     } catch (e) {
         console.error("Encryption failed", e);
-        // Fallback: Just return encoded URI so it doesn't crash, 
-        // though the proxy might not accept it without the hex.
         return encodeURIComponent(url); 
     }
 }
@@ -52,10 +49,6 @@ export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" 
         return targetUrl;
     }
 
-    // SCHOOL MODE: Encrypt and use loader
-    const encryptedHash = uvEncode(targetUrl);
-    const cleanBase = DOGE_BASE_URL.replace(/\/$/, ""); 
-
-    // NEW: Point to loader with hash instead of direct service URL
-    return `${cleanBase}/loader.html#${encryptedHash}`;
+    // SCHOOL MODE: Return Base URL directly
+    return DOGE_BASE_URL;
 }
