@@ -1,4 +1,4 @@
-export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
+export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com/indev";
 const PROXY_PREFIX = "/uv/service/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
