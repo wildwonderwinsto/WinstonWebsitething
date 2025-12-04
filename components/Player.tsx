@@ -18,11 +18,11 @@ type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const { mode } = useNetwork();
   
-  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
-  // Removed: blockPopups state (we will block them on the server/proxy side instead)
+  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'viksrc' : 'vidlink');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
+  const [schoolModeOpened, setSchoolModeOpened] = useState(false);
 
   useEffect(() => {
     const doc = document.documentElement;
@@ -136,6 +136,17 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   const embedSrc = getEmbedUrl();
 
+  // AUTO-OPEN IN NEW TAB FOR SCHOOL MODE
+  useEffect(() => {
+    if (mode === 'SCHOOL' && embedSrc && !schoolModeOpened) {
+      const newWindow = window.open(embedSrc, '_blank');
+      if (!newWindow) {
+        console.error('Popup blocked');
+      }
+      setSchoolModeOpened(true);
+    }
+  }, [embedSrc, mode, schoolModeOpened]);
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
       
@@ -180,7 +191,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         <div className="relative group">
                             <select 
                                 value={season}
-                                onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1); }}
+                                onChange={(e) => { setSeason(Number(e.target.value)); setEpisode(1); setSchoolModeOpened(false); }}
                                 className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-1.5 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 w-24 md:w-32"
                             >
                                 {tvDetails?.seasons?.filter(s => s.season_number > 0).map(s => (
@@ -195,7 +206,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         <div className="relative group">
                             <select 
                                 value={episode}
-                                onChange={(e) => setEpisode(Number(e.target.value))}
+                                onChange={(e) => { setEpisode(Number(e.target.value)); setSchoolModeOpened(false); }}
                                 className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-1.5 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 w-24 md:w-32"
                             >
                                 {Array.from({ length: getEpisodesForSeason() }, (_, i) => i + 1).map(ep => (
@@ -216,7 +227,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                     <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><MonitorPlay className="h-3.5 w-3.5" /></div>
                     <select 
                         value={server}
-                        onChange={(e) => setServer(e.target.value as ServerOption)}
+                        onChange={(e) => { setServer(e.target.value as ServerOption); setSchoolModeOpened(false); }}
                         className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
                     >
                         <option value="vidlink" className="bg-zinc-900">VidLink</option>
@@ -230,19 +241,36 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       </div>
 
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center z-0">
-            <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
-        </div>
+        {mode === 'SCHOOL' ? (
+          <div className="flex flex-col items-center justify-center h-full text-white gap-4">
+            <div className="h-16 w-16 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div>
+            <div className="text-center">
+              <p className="text-lg font-semibold mb-2">Opening video in new tab...</p>
+              <p className="text-sm text-zinc-400 mb-4">The video will open in a separate window</p>
+              <p className="text-xs text-zinc-500">💡 If nothing opened, please allow popups for this site</p>
+            </div>
+            <button 
+              onClick={() => window.open(embedSrc, '_blank')}
+              className="mt-4 px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-zinc-200 transition"
+            >
+              Open Again
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center z-0">
+                <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
+            </div>
 
-        <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
-            src={embedSrc}
-            className="absolute inset-0 w-full h-full border-0 z-10"
-            allowFullScreen
-            allow="cross-origin-isolated; storage-access"
-            {...{ credentialless: "true" }}
-            title={`Watch ${title}`}
-        ></iframe>
+            <iframe
+                key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
+                src={embedSrc}
+                className="absolute inset-0 w-full h-full border-0 z-10"
+                allowFullScreen
+                title={`Watch ${title}`}
+            ></iframe>
+          </>
+        )}
       </div>
 
     </div>,
