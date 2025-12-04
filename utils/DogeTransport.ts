@@ -2,26 +2,22 @@ export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
 const PROXY_PREFIX = "/uv/service/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
+/**
+ * GENERATE THE KEY (k)
+ * Logic: Base64(Date + Host) -> Reverse -> Remove first 6 chars -> XOR Key
+ */
 function getDailyKey(): Uint8Array {
-    // 1. Get current date (UTC)
     const date = new Date().toISOString().slice(0, 10);
-    
-    // 2. Concatenate Date + Host
     const rawInput = date + PROXY_HOSTNAME;
-    
-    // 3. Base64 Encode
     const b64 = btoa(rawInput);
-    
-    // 4. Reverse
     const reversed = b64.split('').reverse().join('');
-    
-    // 5. Remove first 6 chars
     const keyString = reversed.slice(6);
-    
-    // 6. Return as Bytes
     return new TextEncoder().encode(keyString);
 }
 
+/**
+ * ENCODE FUNCTION (Inverse of decodeDoge)
+ */
 function uvEncode(url: string): string {
     if (!url) return '';
     try {
@@ -37,18 +33,25 @@ function uvEncode(url: string): string {
         return encrypted;
     } catch (e) {
         console.error("Encryption failed", e);
-        return encodeURIComponent(url); 
+        return encodeURIComponent(url);
     }
 }
 
+/**
+ * MAIN TRANSPORT FUNCTION
+ */
 export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" | string): string {
     if (!targetUrl) return '';
 
-    // If not SCHOOL mode, return original URL
+    // If not SCHOOL mode, return original URL (Direct Link)
     if (mode !== 'SCHOOL') {
         return targetUrl;
     }
 
-    // SCHOOL MODE: Return Base URL directly
-    return DOGE_BASE_URL;
+    // SCHOOL MODE: Encrypt and create proper proxy URL
+    const encryptedHash = uvEncode(targetUrl);
+    const cleanBase = DOGE_BASE_URL.replace(/\/$/, ""); 
+
+    // Return the encoded service URL
+    return `${cleanBase}${PROXY_PREFIX}${encryptedHash}`;
 }
