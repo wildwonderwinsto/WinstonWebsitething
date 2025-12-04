@@ -11,12 +11,13 @@ interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
+  proxyReady?: boolean; // Added to fix TS build error
 }
 
 // Updated server list
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
-const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
+const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) => {
   // --- CONTEXT ---
   const { mode } = useNetwork();
 
