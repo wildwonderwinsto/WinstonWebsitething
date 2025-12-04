@@ -21,6 +21,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const { mode } = useNetwork();
 
   // --- STATE ---
+  // Default to vixsrcto in School Mode for better proxy compatibility
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
   // Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors
   const [blockPopups, setBlockPopups] = useState(false);
@@ -120,6 +121,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const getEmbedUrl = () => {
     let rawUrl = '';
     
+    // Select the base provider URL based on server choice
     switch (server) {
       case 'vidlink':
         rawUrl = isTv
@@ -128,13 +130,14 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
       
       case 'vixsrcto':
-        // FIXED: Pointing correctly to vixsrc.to as requested
+        // VixSrc.to
         rawUrl = isTv
           ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vixsrc.to/embed/movie/${movie.id}`;
         break;
         
       case 'viksrc':
+        // Viksrc (Backup)
         rawUrl = isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
@@ -142,6 +145,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
     
     // Encrypt and wrap URL if in SCHOOL mode
+    // This will return: BASE_URL/go.html#ENCRYPTED_HASH
+    // The go.html page will register the SW and load the video.
     return transport(rawUrl, mode);
   };
 
