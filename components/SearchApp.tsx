@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
-import { transport } from '../utils/DogeTransport';
 
 interface SearchAppProps {
   onBack: () => void;
-  proxyReady: boolean;
 }
 
-const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
+const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const [query, setQuery] = useState('');
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,12 +36,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
     e.preventDefault();
     if (!query.trim()) return;
     
-    // Wait for proxy if in SCHOOL mode
-    if (mode === 'SCHOOL' && !proxyReady) {
-      console.log('⏳ Waiting for proxy before search...');
-      return;
-    }
-    
     socket.emit('update_activity', {
         page: 'WinstonSearches',
         activity: `Searching: "${query}"`
@@ -57,24 +49,13 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
     if (looksLikeUrl) {
          targetUrl = input.startsWith('http') ? input : `https://${input}`;
     } else {
-         if (mode === 'SCHOOL') {
-             // DuckDuckGo Lite is great for proxy text rendering
-             targetUrl = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(input)}`;
-         } else {
-             // Bing for Home mode (via Translate wrapper)
-             targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
-         }
+         // Default to Bing for better compatibility with wrappers
+         targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
     }
     
-    let finalUrl = '';
-
-    if (mode === 'SCHOOL') {
-        // ENCRYPT VIA PROXY
-        finalUrl = transport(targetUrl, mode);
-    } else {
-        // GOOGLE TRANSLATE BYPASS (HOME/LOCKED)
-        finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
-    }
+    // Always use Google Translate wrapper to bypass X-Frame-Options on client-side
+    // This allows sites to load in the iframe without a dedicated backend proxy
+    const finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
     
     setSearchUrl(finalUrl);
   };
@@ -122,7 +103,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
              
              <form onSubmit={handleSearch} className="relative w-full group">
                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  {isLoading || (mode === 'SCHOOL' && !proxyReady) ? (
+                  {isLoading ? (
                     <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                   ) : (
                     <Search className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -131,11 +112,10 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
                
                <input
                   type="text"
-                  placeholder={mode === 'SCHOOL' && !proxyReady ? "Initializing proxy..." : "Search the web..."}
+                  placeholder="Search the web..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  disabled={mode === 'SCHOOL' && !proxyReady}
-                  className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600"
                   autoFocus
                />
                

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
@@ -12,27 +13,6 @@ const AppContent: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
   const { mode, setMode } = useNetwork();
-  const [proxyReady, setProxyReady] = useState(false);
-
-  // Initialize proxy Service Worker on mount
-  useEffect(() => {
-    const initProxy = async () => {
-      try {
-        // Simply wait a bit for the proxy site to be "warmed up"
-        // The actual SW registration happens when go.html loads in the Player iframe
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        
-        setProxyReady(true);
-        console.log('✅ Proxy ready for use');
-      } catch (error) {
-        console.error('❌ Proxy initialization error:', error);
-        // Set ready anyway to allow the app to function
-        setProxyReady(true);
-      }
-    };
-
-    initProxy();
-  }, []);
 
   const handleLaunch = (target: AppMode) => {
     // Double check lock, though UI should prevent clicks via pointer-events-none
@@ -64,9 +44,9 @@ const AppContent: React.FC = () => {
 
       {/* 2. Main App Content */}
       <div className="relative z-10 w-full flex-1 flex flex-col overflow-hidden">
-        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} proxyReady={proxyReady} />}
+        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
         
-        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} proxyReady={proxyReady} />}
+        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
 
         {appMode === 'launcher' && (
           <div className="flex-1 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
@@ -242,7 +222,7 @@ const AppContent: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Footer - Pushed to bottom of content area, but visible if scrolling */}
+                {/* Footer */}
                 <div className="w-full flex justify-center pb-8 z-10 shrink-0 mt-auto pt-12">
                     <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs font-medium text-zinc-700 select-none bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm border border-zinc-800/50 shadow-lg transition-all duration-300">
                     <span>VER 2.1.0 (GOD MODE)</span>
@@ -251,7 +231,7 @@ const AppContent: React.FC = () => {
                         key={mode} // FORCE RE-RENDER ANIMATION ON FOOTER TEXT
                         className={`flex items-center gap-1 transition-colors duration-300 animate-in fade-in slide-in-from-bottom-1 ${mode === 'SCHOOL' ? 'text-white' : mode === 'HOME' ? 'text-white' : 'text-zinc-500'}`}>
                         <ShieldCheck className="h-3 w-3" /> 
-                        {mode === 'SCHOOL' ? 'SECURE_PROXY' : mode === 'HOME' ? 'DIRECT_LINK' : 'LOCKED'}
+                        {mode === 'SCHOOL' ? 'SECURE_MODE' : mode === 'HOME' ? 'DIRECT_LINK' : 'LOCKED'}
                     </span>
                     </div>
                 </div>

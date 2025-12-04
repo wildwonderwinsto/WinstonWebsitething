@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MovieCard from './MovieCard';
 import Player from './Player';
@@ -13,10 +14,9 @@ const DEFAULT_API_KEY = '0dd07605b5de27e35ab3e0a14d5854db';
 
 interface MovieAppProps {
   onBack: () => void;
-  proxyReady: boolean;
 }
 
-const MovieApp: React.FC<MovieAppProps> = ({ onBack, proxyReady }) => {
+const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
   const { mode } = useNetwork();
   
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -259,7 +259,7 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack, proxyReady }) => {
         </div>
       </div>
 
-      {selectedMovie && (<Player movie={selectedMovie} onClose={handleClosePlayer} apiKey={settings.tmdbApiKey} proxyReady={proxyReady} />)}
+      {selectedMovie && (<Player movie={selectedMovie} onClose={handleClosePlayer} apiKey={settings.tmdbApiKey} />)}
       {showSettings && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
     </div>
   );

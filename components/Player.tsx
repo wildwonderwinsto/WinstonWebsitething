@@ -5,19 +5,18 @@ import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, B
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
-import { transport } from '../utils/DogeTransport';
 
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
-  proxyReady?: boolean; // Added to fix TS build error
+  proxyReady?: boolean;
 }
 
 // Updated server list
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
-const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) => {
+const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- CONTEXT ---
   const { mode } = useNetwork();
 
@@ -141,8 +140,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
         break;
     }
     
-    // In SCHOOL mode, transport() will now return DOGE_BASE_URL (proxy homepage)
-    return transport(rawUrl, mode);
+    return rawUrl;
   };
 
   const embedSrc = getEmbedUrl();
