@@ -239,7 +239,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // REMOVED: sandbox="..." (This fixes the Invalid MessagePort error)
+            allow="cross-origin-isolated; storage-access"
+            {...{ credentialless: "true" }}
             title={`Watch ${title}`}
         ></iframe>
       </div>
