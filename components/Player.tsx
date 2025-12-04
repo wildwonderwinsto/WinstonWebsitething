@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink, ShieldCheck, Shield } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, ShieldCheck, Shield } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
+import { transport } from '../utils/DogeTransport';
 
 interface PlayerProps {
   movie: Movie | null;
@@ -22,8 +23,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   // --- STATE ---
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
-  // Default to FALSE (Sandbox Disabled) to prevent "Please Disable Sandbox" errors
-  const [blockPopups, setBlockPopups] = useState(false);
+  
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -128,9 +128,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
       
       case 'vixsrcto':
+        // Corrected format based on API docs: https://vixsrc.to/movie/{id} or /tv/{id}/{s}/{e}
         rawUrl = isTv
-          ? `https://vixsrc.to/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vixsrc.to/embed/movie/${movie.id}`;
+          ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
+          : `https://vixsrc.to/movie/${movie.id}`;
         break;
         
       case 'viksrc':
@@ -140,7 +141,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
     }
     
-    return rawUrl;
+    // In SCHOOL mode, transport() will now return DOGE_BASE_URL (proxy homepage)
+    return transport(rawUrl, mode);
   };
 
   const embedSrc = getEmbedUrl();
@@ -262,20 +264,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
                 </div>
-
-                {/* Popup Blocker */}
-                <button 
-                    onClick={() => setBlockPopups(!blockPopups)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    blockPopups 
-                        ? 'bg-blue-900/20 border-blue-500/50 text-blue-400' 
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-white'
-                    }`}
-                    title={blockPopups ? "Ads Blocked (Sandbox ON)" : "Ads Allowed (Sandbox OFF - Recommended)"}
-                >
-                    {blockPopups ? <Ban className="h-3.5 w-3.5" /> : <ExternalLink className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">{blockPopups ? 'Ads Blocked' : 'Ads Allowed'}</span>
-                </button>
             </div>
         </div>
       </div>
@@ -287,15 +275,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
 
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${mode}-${blockPopups}`}
+            key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            // IMPORTANT: passing undefined removes the attribute entirely, ensuring "Disable Sandbox" compliance
-            sandbox={blockPopups 
-                ? "allow-scripts allow-same-origin allow-forms allow-presentation" 
-                : undefined
-            }
             allow="cross-origin-isolated; storage-access"
             {...({ credentialless: "true" } as any)}
             title={`Watch ${title}`}
