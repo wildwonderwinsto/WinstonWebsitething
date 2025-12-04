@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, ShieldCheck, Shield } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 import { useNetwork } from '../context/NetworkContext';
-import { transport } from '../utils/DogeTransport';
 
 interface PlayerProps {
   movie: Movie | null;
@@ -14,7 +13,7 @@ interface PlayerProps {
   proxyReady?: boolean;
 }
 
-// Updated server list
+// Updated server list configuration
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
@@ -22,6 +21,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const { mode } = useNetwork();
 
   // --- STATE ---
+  // Default to vixsrcto for SCHOOL mode, otherwise vidlink
   const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
   
   const [season, setSeason] = useState(1);
@@ -66,13 +66,14 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, season, episode]);
 
-  // --- TV DETAILS ---
+  // --- TV DETAILS FETCHING ---
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
       const loadDetails = async () => {
         try {
             const details = await getTVDetails(movie.id, apiKey);
             setTvDetails(details);
+            // If season 1 doesn't exist (e.g. some anime/specials), set to first available season
             if (details?.seasons?.length && !details.seasons.find(s => s.season_number === 1)) {
                  const firstSeason = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
                  if (firstSeason) setSeason(firstSeason.season_number);
@@ -85,7 +86,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, apiKey]);
 
-  // --- HANDLERS ---
+  // --- EPISODE NAVIGATION ---
+  const getEpisodesForSeason = () => {
+    if (!tvDetails) return 24;
+    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
+    return currentSeason ? currentSeason.episode_count : 24;
+  };
+
   const handleNextEpisode = () => {
       const maxEps = getEpisodesForSeason();
       if (episode < maxEps) {
@@ -105,12 +112,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       }
   };
 
-  const getEpisodesForSeason = () => {
-    if (!tvDetails) return 24;
-    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
-    return currentSeason ? currentSeason.episode_count : 24;
-  };
-
   if (!movie) return null;
 
   const isTv = movie.media_type === 'tv' || !!movie.name;
@@ -128,21 +129,22 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         break;
       
       case 'vixsrcto':
-        // Corrected format based on API docs: https://vixsrc.to/movie/{id} or /tv/{id}/{s}/{e}
         rawUrl = isTv
           ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
           : `https://vixsrc.to/movie/${movie.id}`;
         break;
         
       case 'viksrc':
+        // Viksrc usually maps to vidsrc.cc/v2
         rawUrl = isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
         break;
+      
+      default:
+        rawUrl = `https://vidlink.pro/movie/${movie.id}`;
     }
-    
-    // In SCHOOL mode, transport() will now return DOGE_BASE_URL (proxy homepage)
-    return transport(rawUrl, mode);
+    return rawUrl;
   };
 
   const embedSrc = getEmbedUrl();
@@ -192,7 +194,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         {/* Prev Button */}
                         <button 
                             onClick={handlePrevEpisode} 
-                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
+                            disabled={season === 1 && episode === 1}
+                            className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition disabled:opacity-50 disabled:hover:bg-transparent"
                             title="Previous Episode"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -270,6 +273,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
       {/* --- VIDEO CONTAINER --- */}
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
+        {/* Loading Spinner */}
         <div className="absolute inset-0 flex items-center justify-center z-0">
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
