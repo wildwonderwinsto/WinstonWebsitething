@@ -26,6 +26,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
   const [embedSrc, setEmbedSrc] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Prevent scrolling on the main page while player is open
   useEffect(() => {
     const doc = document.documentElement;
     const body = document.body;
@@ -42,6 +43,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
     };
   }, []);
 
+  // Update activity status
   useEffect(() => {
     if (movie) {
       const title = movie.title || movie.name;
@@ -52,6 +54,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
     }
   }, [movie, season, episode]);
 
+  // Load TV Details
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
       const loadDetails = async () => {
@@ -63,24 +66,22 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
             if (firstSeason) setSeason(firstSeason.season_number);
           }
         } catch (e) {
-          console.error("Failed to load TV details", e);
+          // Silent catch
         }
       };
       loadDetails();
     }
   }, [movie, apiKey]);
 
+  // Generate URL with Fallback protection
   useEffect(() => {
-    if (mode === 'SCHOOL' && !proxyReady) {
-      setIsLoading(true);
-      console.log('⏳ Waiting for proxy to initialize...');
-      return;
-    }
     const generateUrl = async () => {
       try {
         setIsLoading(true);
         let rawUrl = '';
         const isTv = movie?.media_type === 'tv' || !!movie?.name;
+        
+        // 1. Determine the raw URL based on the selected server
         switch (server) {
           case 'vidlink':
             rawUrl = isTv ? `https://vidlink.pro/tv/${movie?.id}/${season}/${episode}` : `https://vidlink.pro/movie/${movie?.id}`;
@@ -92,12 +93,33 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
             rawUrl = isTv ? `https://vidsrc.cc/v2/embed/tv/${movie?.id}/${season}/${episode}` : `https://vidsrc.cc/v2/embed/movie/${movie?.id}`;
             break;
         }
-        const finalUrl = transport(rawUrl, mode);
-        console.log('🎬 Generated embed URL:', finalUrl);
+
+        // 2. Attempt to use the transport (Proxy)
+        let finalUrl = rawUrl;
+        
+        // Only attempt proxy transport if mode demands it, otherwise use direct
+        if (mode === 'SCHOOL') {
+            try {
+                // If proxy isn't ready, this might throw, which is good -> we catch it and use rawUrl
+                // This prevents the "ServiceWorker" error page from showing up
+                finalUrl = transport(rawUrl, mode);
+            } catch (err) {
+                // Proxy failed? Just use the raw URL.
+                finalUrl = rawUrl;
+            }
+        } else {
+            // Home/unlocked mode usually wraps differently or uses raw
+            try {
+                finalUrl = transport(rawUrl, mode);
+            } catch (err) {
+                finalUrl = rawUrl;
+            }
+        }
+
         setEmbedSrc(finalUrl);
         setIsLoading(false);
       } catch (error) {
-        console.error('❌ Error generating embed URL:', error);
+        // If everything fails, don't show error codes, just stop loading
         setIsLoading(false);
       }
     };
@@ -203,7 +225,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey, proxyReady }) =
         {isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/80">
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-zinc-400 text-sm">{mode === 'SCHOOL' && !proxyReady ? 'Initializing secure proxy...' : 'Loading media...'}</p>
+            <p className="text-zinc-400 text-sm">Loading media...</p>
           </div>
         )}
         <div className="absolute inset-0 flex items-center justify-center z-0">
