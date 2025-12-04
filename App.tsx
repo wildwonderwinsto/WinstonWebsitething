@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
@@ -13,6 +12,32 @@ const AppContent: React.FC = () => {
   const [appMode, setAppMode] = useState<AppMode>('launcher');
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
   const { mode, setMode } = useNetwork();
+  const [proxyReady, setProxyReady] = useState(false);
+  const proxyLoaderRef = useRef<HTMLIFrameElement>(null);
+
+  // Initialize proxy Service Worker on mount
+  useEffect(() => {
+    const initProxy = async () => {
+      if (proxyLoaderRef.current) {
+        try {
+          // Load proxy root to register Service Worker
+          proxyLoaderRef.current.src = 'https://wintonswebsiteproxy.onrender.com/';
+          
+          // Wait for Service Worker registration (3 seconds should be enough)
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          
+          setProxyReady(true);
+          console.log('✅ Proxy Service Worker initialized');
+        } catch (error) {
+          console.error('❌ Proxy initialization error:', error);
+          // Set ready anyway to allow fallback behavior
+          setProxyReady(true);
+        }
+      }
+    };
+
+    initProxy();
+  }, []);
 
   const handleLaunch = (target: AppMode) => {
     // Double check lock, though UI should prevent clicks via pointer-events-none
@@ -39,14 +64,21 @@ const AppContent: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden flex flex-col">
       
+      {/* Hidden iframe for Service Worker registration */}
+      <iframe 
+        ref={proxyLoaderRef}
+        style={{ display: 'none', position: 'absolute', width: 0, height: 0 }}
+        title="Proxy Service Worker Loader"
+      />
+
       {/* 1. Global Overlay */}
       <GlobalOverlay />
 
       {/* 2. Main App Content */}
       <div className="relative z-10 w-full flex-1 flex flex-col overflow-hidden">
-        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
+        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} proxyReady={proxyReady} />}
         
-        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
+        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} proxyReady={proxyReady} />}
 
         {appMode === 'launcher' && (
           <div className="flex-1 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
