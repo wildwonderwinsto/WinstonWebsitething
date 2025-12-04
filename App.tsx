@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
@@ -13,26 +13,21 @@ const AppContent: React.FC = () => {
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
   const { mode, setMode } = useNetwork();
   const [proxyReady, setProxyReady] = useState(false);
-  const proxyLoaderRef = useRef<HTMLIFrameElement>(null);
 
   // Initialize proxy Service Worker on mount
   useEffect(() => {
     const initProxy = async () => {
-      if (proxyLoaderRef.current) {
-        try {
-          // Load proxy root to register Service Worker
-          proxyLoaderRef.current.src = 'https://wintonswebsiteproxy.onrender.com/';
-          
-          // Wait for Service Worker registration (3 seconds should be enough)
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          
-          setProxyReady(true);
-          console.log('✅ Proxy Service Worker initialized');
-        } catch (error) {
-          console.error('❌ Proxy initialization error:', error);
-          // Set ready anyway to allow fallback behavior
-          setProxyReady(true);
-        }
+      try {
+        // Simply wait a bit for the proxy site to be "warmed up"
+        // The actual SW registration happens when go.html loads in the Player iframe
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        setProxyReady(true);
+        console.log('✅ Proxy ready for use');
+      } catch (error) {
+        console.error('❌ Proxy initialization error:', error);
+        // Set ready anyway to allow the app to function
+        setProxyReady(true);
       }
     };
 
@@ -64,13 +59,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden flex flex-col">
       
-      {/* Hidden iframe for Service Worker registration */}
-      <iframe 
-        ref={proxyLoaderRef}
-        style={{ display: 'none', position: 'absolute', width: 0, height: 0 }}
-        title="Proxy Service Worker Loader"
-      />
-
       {/* 1. Global Overlay */}
       <GlobalOverlay />
 
