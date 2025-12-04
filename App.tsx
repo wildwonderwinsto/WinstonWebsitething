@@ -9,7 +9,15 @@ type AppMode = 'launcher' | 'streams' | 'searches';
 
 // Inner Component to consume Context
 const AppContent: React.FC = () => {
-  const [appMode, setAppMode] = useState<AppMode>('launcher');
+  // Initialize appMode based on the current URL path for deep linking support.
+  // This allows the proxy site to open directly to the correct app.
+  const [appMode, setAppMode] = useState<AppMode>(() => {
+    const path = window.location.pathname;
+    if (path.includes('/WinstonStreams')) return 'streams';
+    if (path.includes('/WinstonSearches')) return 'searches';
+    return 'launcher';
+  });
+
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
   const { mode, setMode } = useNetwork();
 
@@ -19,16 +27,17 @@ const AppContent: React.FC = () => {
 
     // 2. School Mode Redirection
     if (mode === 'SCHOOL') {
-        // Redirect to the external proxy site in a new tab
         const proxyBase = "https://wintonswebsiteproxy.onrender.com";
-        // You can append paths if your proxy supports them, e.g., /WinstonStreams
-        // For now, we go to the root as requested.
-        window.open(proxyBase, '_blank');
+        // Append the specific app path so the destination opens it automatically
+        const targetPath = target === 'streams' ? '/WinstonStreams' : '/WinstonSearches';
+        window.open(`${proxyBase}${targetPath}`, '_blank');
         return;
     }
 
     // 3. Home Mode (Local Launch)
     setAppMode(target);
+    // Optionally push state to URL for local navigation feel, but not strictly necessary for single-page feel
+    // window.history.pushState({}, '', target === 'streams' ? '/WinstonStreams' : '/WinstonSearches');
   };
 
   // Helper to determine Orb RGBA Colors for smooth interpolation
