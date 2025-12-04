@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
-import { Globe, ChevronRight, Tv, ShieldCheck, Lock, School, Home as HomeIcon } from 'lucide-react';
+import { Globe, Tv, ShieldCheck, Lock, School, Home as HomeIcon } from 'lucide-react';
 import { NetworkProvider, useNetwork } from './context/NetworkContext';
 
 type AppMode = 'launcher' | 'streams' | 'searches';
@@ -37,12 +37,18 @@ const AppContent: React.FC = () => {
     // 1. Locked Check
     if (mode === 'LOCKED') return;
 
-    // 2. School Mode Redirection (Full Site Redirect)
+    // 2. School Mode Redirection (Proxy Tunnel)
     if (mode === 'SCHOOL') {
-        const proxyBase = "https://wintonswebsiteproxy.onrender.com";
-        // Append the specific app path so the destination opens it automatically
-        const targetPath = target === 'streams' ? '/WinstonStreams' : '/WinstonSearches';
-        window.open(`${proxyBase}${targetPath}`, '_blank');
+        const proxyEntry = "https://wintonswebsiteproxy.onrender.com/indev";
+        
+        // Define the destination URL on the main site
+        const targetUrl = target === 'streams' 
+            ? "https://winstonswebsite.onrender.com/WinstonStreams" 
+            : "https://winstonswebsite.onrender.com/WinstonSearches";
+
+        // Open the proxy entry point and pass the target URL
+        // We encode it to ensure special characters don't break the query string
+        window.open(`${proxyEntry}?url=${encodeURIComponent(targetUrl)}`, '_blank');
         return;
     }
 
