@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import MovieCard from './MovieCard';
 import Player from './Player';
@@ -7,7 +6,6 @@ import { Movie, Settings, MediaType, SortOption, Genre, GenreFilter } from '../t
 import { discoverMedia, searchMovies, getGenres } from '../services/tmdb';
 import { Loader2, Settings as SettingsIcon, Search, ChevronDown, Home } from 'lucide-react';
 import { socket } from './GlobalOverlay';
-import { useNetwork } from '../context/NetworkContext';
 
 const TMDB_STORAGE_KEY = 'redstream_tmdb_key';
 const DEFAULT_API_KEY = '0dd07605b5de27e35ab3e0a14d5854db';
@@ -17,8 +15,6 @@ interface MovieAppProps {
 }
 
 const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
-  const { mode } = useNetwork();
-  
   const [movies, setMovies] = useState<Movie[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
 import { socket } from './GlobalOverlay';
@@ -51,7 +52,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     }
     
     // Always use Google Translate Wrapper for Home Mode to bypass X-Frame-Options
-    // School mode users are redirected by launcher, so they don't see this.
     const finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
     
     setSearchUrl(finalUrl);
@@ -145,3 +145,4 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
 };
 
 export default SearchApp;
+    

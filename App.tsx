@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
-import { Globe, Tv, ShieldCheck, Lock, School, Home as HomeIcon } from 'lucide-react';
-import { NetworkProvider, useNetwork } from './context/NetworkContext';
+import { Globe, Tv, Home as HomeIcon } from 'lucide-react';
 
 type AppMode = 'launcher' | 'streams' | 'searches';
 
-// Inner Component to consume Context
-const AppContent: React.FC = () => {
-  // Initialize appMode based on the current URL path for deep linking support.
+const App: React.FC = () => {
+  // Initialize appMode based on the current URL path
   const [appMode, setAppMode] = useState<AppMode>(() => {
     const path = window.location.pathname;
     if (path.includes('/WinstonStreams')) return 'streams';
@@ -18,9 +16,8 @@ const AppContent: React.FC = () => {
   });
 
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
-  const { mode, setMode } = useNetwork();
 
-  // Handle Browser Back Button
+  // Handle Browser Back Button and Deep Linking
   useEffect(() => {
     const handlePopState = () => {
         const path = window.location.pathname;
@@ -34,29 +31,7 @@ const AppContent: React.FC = () => {
   }, []);
 
   const handleLaunch = (target: AppMode) => {
-    // 1. Locked Check
-    if (mode === 'LOCKED') return;
-
-    // 2. School Mode Redirection (Proxy Tunnel)
-    if (mode === 'SCHOOL') {
-        const proxyEntry = "https://wintonswebsiteproxy.onrender.com/indev";
-        
-        // Define the destination URL on the main site
-        const targetUrl = target === 'streams' 
-            ? "https://winstonswebsite.onrender.com/WinstonStreams" 
-            : "https://winstonswebsite.onrender.com/WinstonSearches";
-
-        // Open the proxy entry point and pass the target URL
-        // We encode it to ensure special characters don't break the query string
-        window.open(`${proxyEntry}?url=${encodeURIComponent(targetUrl)}`, '_blank');
-        return;
-    }
-
-    // 3. Home Mode (Local Launch)
     setAppMode(target);
-    
-    // UPDATE URL MANUALLY (Client-Side Routing)
-    // This ensures the URL changes to /WinstonStreams even though we are just changing React state.
     const newPath = target === 'streams' ? '/WinstonStreams' : target === 'searches' ? '/WinstonSearches' : '/';
     window.history.pushState({}, '', newPath);
   };
@@ -66,18 +41,16 @@ const AppContent: React.FC = () => {
       window.history.pushState({}, '', '/');
   };
 
-  // Helper to determine Orb RGBA Colors for smooth interpolation
+  // Helper to determine Orb RGBA Colors
   const getTopLeftOrbColor = () => {
     if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)'; // Red-600 strong
     if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)'; // Blue-600 strong
-    if (mode === 'LOCKED') return 'rgba(220, 38, 38, 0.1)'; // Red weak
     return 'rgba(255, 255, 255, 0.08)'; // White very weak
   };
 
   const getBottomRightOrbColor = () => {
     if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)'; // Red-600 strong
     if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)'; // Blue-600 strong
-    if (mode === 'LOCKED') return 'rgba(39, 39, 42, 0.4)'; // Zinc-800 weak
     return 'rgba(255, 255, 255, 0.08)'; // White very weak
   };
 
@@ -118,75 +91,13 @@ const AppContent: React.FC = () => {
                         <h1 className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 drop-shadow-2xl select-none leading-tight">
                         Winstons<br className="hidden md:block"/>Launcher
                         </h1>
-                        
-                        <div className="flex flex-col items-center justify-center gap-1 md:gap-2 h-12 overflow-hidden">
-                          <p 
-                            key={mode}
-                            className={`font-medium tracking-widest uppercase text-xs sm:text-sm md:text-base animate-in fade-in slide-in-from-bottom-2 duration-500
-                            ${mode === 'LOCKED' ? 'text-red-500 font-bold' : 'text-white'}
-                          `}>
-                            {mode === 'LOCKED' 
-                              ? "NETWORK CONFIGURATION REQUIRED" 
-                              : mode === 'HOME' ? "HOME NETWORK SELECTED" : "SCHOOL NETWORK SELECTED"}
-                          </p>
-
-                          <div className={`overflow-hidden transition-all duration-700 ease-in-out ${mode !== 'LOCKED' ? 'opacity-100 max-h-10 translate-y-0' : 'opacity-0 max-h-0 -translate-y-2'}`}>
-                             <p className="text-[10px] md:text-sm text-zinc-500 tracking-[0.3em] uppercase">
-                               {mode === 'SCHOOL' ? 'Redirecting via Proxy' : 'Select Your Destination'}
-                             </p>
-                          </div>
-                        </div>
-                    </div>
-
-                    {/* TRI-STATE TOGGLE */}
-                    <div className="relative bg-black/60 backdrop-blur-md rounded-xl border border-zinc-800 p-1 w-full max-w-sm md:max-w-md mx-auto shadow-2xl">
-                        <div className="absolute inset-1 grid grid-cols-3 pointer-events-none">
-                            <div className="border-r border-zinc-800/50"></div>
-                            <div className="border-r border-zinc-800/50"></div>
-                            <div></div>
-                        </div>
-
-                        <div 
-                            className={`absolute top-1 bottom-1 w-[calc((100%-8px)/3)] rounded-lg shadow-lg z-0 transition-all duration-300 cubic-bezier(0.2, 0.8, 0.2, 1) border
-                            ${mode === 'HOME' ? 'left-[4px] translate-x-0 bg-white border-transparent' : ''} 
-                            ${mode === 'LOCKED' ? 'left-1/2 -translate-x-1/2 bg-zinc-800 border-zinc-700' : ''}
-                            ${mode === 'SCHOOL' ? 'right-[4px] translate-x-0 bg-white border-transparent' : ''}
-                            `}
-                        />
-
-                        <div className="relative z-10 grid grid-cols-3 gap-1">
-                            <button 
-                              onClick={() => setMode('HOME')}
-                              className={`py-3 md:py-4 rounded-lg text-[10px] md:text-xs font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-colors duration-200 select-none ${mode === 'HOME' ? 'text-black' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                              <HomeIcon className="w-4 h-4" /> 
-                              <span>HOME</span>
-                            </button>
-                            
-                            <button 
-                              onClick={() => setMode('LOCKED')}
-                              className={`py-3 md:py-4 rounded-lg text-[10px] md:text-xs font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-colors duration-200 select-none ${mode === 'LOCKED' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                              <Lock className="w-4 h-4" /> 
-                              <span>LOCKED</span>
-                            </button>
-
-                            <button 
-                              onClick={() => setMode('SCHOOL')}
-                              className={`py-3 md:py-4 rounded-lg text-[10px] md:text-xs font-bold flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-colors duration-200 select-none ${mode === 'SCHOOL' ? 'text-black' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                              <School className="w-4 h-4" /> 
-                              <span>SCHOOL</span>
-                            </button>
-                        </div>
+                        <p className="text-zinc-500 font-medium tracking-widest uppercase text-sm md:text-base animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            Select Your Destination
+                        </p>
                     </div>
 
                     {/* MAIN CARDS */}
-                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-4xl px-2 md:px-4 transition-all duration-500 
-                        ${mode === 'LOCKED' 
-                           ? 'opacity-30 blur-sm pointer-events-none grayscale' 
-                           : 'opacity-100 blur-0 grayscale-0'
-                        }`}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-4xl px-2 md:px-4">
                         
                         {/* Streams Card */}
                         <div 
@@ -251,14 +162,11 @@ const AppContent: React.FC = () => {
 
                 {/* Footer */}
                 <div className="w-full flex justify-center pb-8 z-10 shrink-0 mt-auto pt-12">
-                    <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs font-medium text-zinc-700 select-none bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm border border-zinc-800/50 shadow-lg transition-all duration-300">
+                    <div className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs font-medium text-zinc-700 select-none bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm border border-zinc-800/50 shadow-lg">
                     <span>VER 2.1.0 (GOD MODE)</span>
                     <div className="h-1 w-1 rounded-full bg-zinc-700"></div>
-                    <span 
-                        key={mode} 
-                        className={`flex items-center gap-1 transition-colors duration-300 animate-in fade-in slide-in-from-bottom-1 ${mode === 'SCHOOL' ? 'text-white' : mode === 'HOME' ? 'text-white' : 'text-zinc-500'}`}>
-                        <ShieldCheck className="h-3 w-3" /> 
-                        {mode === 'SCHOOL' ? 'PROXY_REDIRECT' : mode === 'HOME' ? 'DIRECT_LINK' : 'LOCKED'}
+                    <span className="flex items-center gap-1 text-zinc-500">
+                       SECURE
                     </span>
                     </div>
                 </div>
@@ -270,13 +178,5 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
-
-function App() {
-  return (
-    <NetworkProvider>
-      <AppContent />
-    </NetworkProvider>
-  );
-}
 
 export default App;

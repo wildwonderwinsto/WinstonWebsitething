@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
 
