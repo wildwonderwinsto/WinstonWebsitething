@@ -2,10 +2,6 @@ export const DOGE_BASE_URL = "https://wintonswebsiteproxy.onrender.com";
 const PROXY_PREFIX = "/uv/service/";
 const PROXY_HOSTNAME = "wintonswebsiteproxy.onrender.com";
 
-/**
- * GENERATE THE KEY (k)
- * Logic: Base64(Date + Host) -> Reverse -> Remove first 6 chars -> XOR Key
- */
 function getDailyKey(): Uint8Array {
     const date = new Date().toISOString().slice(0, 10);
     const rawInput = date + PROXY_HOSTNAME;
@@ -15,9 +11,6 @@ function getDailyKey(): Uint8Array {
     return new TextEncoder().encode(keyString);
 }
 
-/**
- * ENCODE FUNCTION (Inverse of decodeDoge)
- */
 function uvEncode(url: string): string {
     if (!url) return '';
     try {
@@ -37,21 +30,18 @@ function uvEncode(url: string): string {
     }
 }
 
-/**
- * MAIN TRANSPORT FUNCTION
- */
 export function transport(targetUrl: string, mode: "HOME" | "SCHOOL" | "LOCKED" | string): string {
     if (!targetUrl) return '';
 
-    // If not SCHOOL mode, return original URL (Direct Link)
     if (mode !== 'SCHOOL') {
         return targetUrl;
     }
 
-    // SCHOOL MODE: Encrypt and create proper proxy URL
+    // Encrypt the video URL
     const encryptedHash = uvEncode(targetUrl);
-    const cleanBase = DOGE_BASE_URL.replace(/\/$/, ""); 
+    const cleanBase = DOGE_BASE_URL.replace(/\/$/, "");
 
-    // Return the encoded service URL
-    return `${cleanBase}${PROXY_PREFIX}${encryptedHash}`;
+    // Point to go.html with the encrypted hash
+    // go.html will register the Service Worker, then redirect to the video
+    return `${cleanBase}/go.html#${encryptedHash}`;
 }
