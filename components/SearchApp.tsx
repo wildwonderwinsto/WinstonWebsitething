@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
 import { socket } from './GlobalOverlay';
@@ -79,10 +78,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
            <Home className="h-5 w-5 text-zinc-400 group-hover:text-white transition" />
            <span className="text-sm font-medium text-zinc-400 group-hover:text-white transition">Launcher</span>
         </button>
-
-        <div className="px-3 py-1 rounded-full border border-zinc-700 bg-zinc-800 text-zinc-300 text-[10px] font-bold tracking-widest uppercase pointer-events-auto backdrop-blur-md">
-            HOME_NETWORK
-        </div>
       </div>
 
       <div className="w-full h-full flex flex-col items-center p-4 md:p-8 pt-12 gap-6 overflow-hidden flex-1">
@@ -145,4 +140,3 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
 };
 
 export default SearchApp;
-    

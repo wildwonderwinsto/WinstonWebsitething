@@ -151,16 +151,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                 </button>
                 <div className="min-w-0 flex flex-col">
                     <h2 className="text-sm md:text-lg font-bold text-white truncate leading-tight">{title}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                        {isTv && (
+                    {isTv && (
+                        <div className="flex items-center gap-2 mt-1">
                             <span className="text-[10px] md:text-xs font-medium text-zinc-400">
                                 S{season} E{episode}
                             </span>
-                        )}
-                        <div className="px-2 py-0.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-300 text-[10px] font-bold tracking-wider uppercase">
-                            DIRECT_LINK
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
 
