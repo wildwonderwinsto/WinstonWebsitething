@@ -6,9 +6,10 @@ import { transport } from '../utils/DogeTransport';
 
 interface SearchAppProps {
   onBack: () => void;
+  proxyReady: boolean;
 }
 
-const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
+const SearchApp: React.FC<SearchAppProps> = ({ onBack, proxyReady }) => {
   const [query, setQuery] = useState('');
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,12 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
+    
+    // Wait for proxy if in SCHOOL mode
+    if (mode === 'SCHOOL' && !proxyReady) {
+      console.log('⏳ Waiting for proxy before search...');
+      return;
+    }
     
     socket.emit('update_activity', {
         page: 'WinstonSearches',
@@ -115,7 +122,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
              
              <form onSubmit={handleSearch} className="relative w-full group">
                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  {isLoading ? (
+                  {isLoading || (mode === 'SCHOOL' && !proxyReady) ? (
                     <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
                   ) : (
                     <Search className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -124,10 +131,11 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                
                <input
                   type="text"
-                  placeholder="Search the web..."
+                  placeholder={mode === 'SCHOOL' && !proxyReady ? "Initializing proxy..." : "Search the web..."}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600"
+                  disabled={mode === 'SCHOOL' && !proxyReady}
+                  className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
                />
                
