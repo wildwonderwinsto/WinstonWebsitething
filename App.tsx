@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
 import { GlobalOverlay } from './components/GlobalOverlay';
@@ -10,7 +10,6 @@ type AppMode = 'launcher' | 'streams' | 'searches';
 // Inner Component to consume Context
 const AppContent: React.FC = () => {
   // Initialize appMode based on the current URL path for deep linking support.
-  // This allows the proxy site to open directly to the correct app.
   const [appMode, setAppMode] = useState<AppMode>(() => {
     const path = window.location.pathname;
     if (path.includes('/WinstonStreams')) return 'streams';
@@ -21,11 +20,24 @@ const AppContent: React.FC = () => {
   const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
   const { mode, setMode } = useNetwork();
 
+  // Handle Browser Back Button
+  useEffect(() => {
+    const handlePopState = () => {
+        const path = window.location.pathname;
+        if (path.includes('/WinstonStreams')) setAppMode('streams');
+        else if (path.includes('/WinstonSearches')) setAppMode('searches');
+        else setAppMode('launcher');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleLaunch = (target: AppMode) => {
     // 1. Locked Check
     if (mode === 'LOCKED') return;
 
-    // 2. School Mode Redirection
+    // 2. School Mode Redirection (Full Site Redirect)
     if (mode === 'SCHOOL') {
         const proxyBase = "https://wintonswebsiteproxy.onrender.com";
         // Append the specific app path so the destination opens it automatically
@@ -36,8 +48,16 @@ const AppContent: React.FC = () => {
 
     // 3. Home Mode (Local Launch)
     setAppMode(target);
-    // Optionally push state to URL for local navigation feel, but not strictly necessary for single-page feel
-    // window.history.pushState({}, '', target === 'streams' ? '/WinstonStreams' : '/WinstonSearches');
+    
+    // UPDATE URL MANUALLY (Client-Side Routing)
+    // This ensures the URL changes to /WinstonStreams even though we are just changing React state.
+    const newPath = target === 'streams' ? '/WinstonStreams' : target === 'searches' ? '/WinstonSearches' : '/';
+    window.history.pushState({}, '', newPath);
+  };
+
+  const handleBackToLauncher = () => {
+      setAppMode('launcher');
+      window.history.pushState({}, '', '/');
   };
 
   // Helper to determine Orb RGBA Colors for smooth interpolation
@@ -63,9 +83,9 @@ const AppContent: React.FC = () => {
 
       {/* 2. Main App Content */}
       <div className="relative z-10 w-full flex-1 flex flex-col overflow-hidden">
-        {appMode === 'streams' && <MovieApp onBack={() => setAppMode('launcher')} />}
+        {appMode === 'streams' && <MovieApp onBack={handleBackToLauncher} />}
         
-        {appMode === 'searches' && <SearchApp onBack={() => setAppMode('launcher')} />}
+        {appMode === 'searches' && <SearchApp onBack={handleBackToLauncher} />}
 
         {appMode === 'launcher' && (
           <div className="flex-1 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
