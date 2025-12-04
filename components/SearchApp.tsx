@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
 import { socket } from './GlobalOverlay';
-import { useNetwork } from '../context/NetworkContext';
 
 interface SearchAppProps {
   onBack: () => void;
@@ -12,8 +11,6 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { mode } = useNetwork();
-
   useEffect(() => {
     socket.emit('update_activity', {
         page: 'WinstonSearches',
@@ -49,12 +46,12 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     if (looksLikeUrl) {
          targetUrl = input.startsWith('http') ? input : `https://${input}`;
     } else {
-         // Default to Bing for better compatibility with wrappers
+         // Default to Bing for best compatibility with wrapper
          targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
     }
     
-    // Always use Google Translate wrapper to bypass X-Frame-Options on client-side
-    // This allows sites to load in the iframe without a dedicated backend proxy
+    // Always use Google Translate Wrapper for Home Mode to bypass X-Frame-Options
+    // School mode users are redirected by launcher, so they don't see this.
     const finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
     
     setSearchUrl(finalUrl);
@@ -83,14 +80,8 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
            <span className="text-sm font-medium text-zinc-400 group-hover:text-white transition">Launcher</span>
         </button>
 
-        <div className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase pointer-events-auto backdrop-blur-md ${
-             mode === 'SCHOOL' 
-             ? 'bg-white/10 text-white border-white/20' 
-             : mode === 'HOME' 
-                ? 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                : 'bg-red-900/30 text-red-400 border-red-800'
-        }`}>
-            {mode === 'SCHOOL' ? 'SCHOOL_NETWORK' : mode === 'HOME' ? 'HOME_NETWORK' : 'LOCKED'}
+        <div className="px-3 py-1 rounded-full border border-zinc-700 bg-zinc-800 text-zinc-300 text-[10px] font-bold tracking-widest uppercase pointer-events-auto backdrop-blur-md">
+            HOME_NETWORK
         </div>
       </div>
 

@@ -1,29 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Ban, ExternalLink } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 import { socket } from './GlobalOverlay';
-import { useNetwork } from '../context/NetworkContext';
 
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
   apiKey: string;
-  proxyReady?: boolean;
 }
 
-// Updated server list configuration
+// Updated server list
 type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
-  // --- CONTEXT ---
-  const { mode } = useNetwork();
-
   // --- STATE ---
-  // Default to vixsrcto for SCHOOL mode, otherwise vidlink
-  const [server, setServer] = useState<ServerOption>(mode === 'SCHOOL' ? 'vixsrcto' : 'vidlink');
-  
+  const [server, setServer] = useState<ServerOption>('vidlink');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -66,14 +59,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, season, episode]);
 
-  // --- TV DETAILS FETCHING ---
+  // --- TV DETAILS ---
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
       const loadDetails = async () => {
         try {
             const details = await getTVDetails(movie.id, apiKey);
             setTvDetails(details);
-            // If season 1 doesn't exist (e.g. some anime/specials), set to first available season
             if (details?.seasons?.length && !details.seasons.find(s => s.season_number === 1)) {
                  const firstSeason = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
                  if (firstSeason) setSeason(firstSeason.season_number);
@@ -86,13 +78,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie, apiKey]);
 
-  // --- EPISODE NAVIGATION ---
-  const getEpisodesForSeason = () => {
-    if (!tvDetails) return 24;
-    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
-    return currentSeason ? currentSeason.episode_count : 24;
-  };
-
+  // --- HANDLERS ---
   const handleNextEpisode = () => {
       const maxEps = getEpisodesForSeason();
       if (episode < maxEps) {
@@ -112,6 +98,12 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       }
   };
 
+  const getEpisodesForSeason = () => {
+    if (!tvDetails) return 24;
+    const currentSeason = tvDetails.seasons.find(s => s.season_number === season);
+    return currentSeason ? currentSeason.episode_count : 24;
+  };
+
   if (!movie) return null;
 
   const isTv = movie.media_type === 'tv' || !!movie.name;
@@ -119,32 +111,25 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
   // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
-    let rawUrl = '';
-    
     switch (server) {
       case 'vidlink':
-        rawUrl = isTv
+        return isTv
           ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
           : `https://vidlink.pro/movie/${movie.id}`;
-        break;
       
       case 'vixsrcto':
-        rawUrl = isTv
+        return isTv
           ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
           : `https://vixsrc.to/movie/${movie.id}`;
-        break;
         
       case 'viksrc':
-        // Viksrc usually maps to vidsrc.cc/v2
-        rawUrl = isTv
+        return isTv
           ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
-        break;
       
       default:
-        rawUrl = `https://vidlink.pro/movie/${movie.id}`;
+        return `https://vidlink.pro/movie/${movie.id}`;
     }
-    return rawUrl;
   };
 
   const embedSrc = getEmbedUrl();
@@ -172,14 +157,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                                 S{season} E{episode}
                             </span>
                         )}
-                        <div className={`px-2 py-0.5 rounded border text-[10px] font-bold tracking-wider uppercase ${
-                            mode === 'SCHOOL' 
-                            ? 'bg-white/10 text-white border-white/20' 
-                            : mode === 'HOME' 
-                                ? 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                                : 'bg-red-900/30 text-red-400 border-red-800'
-                        }`}>
-                            {mode === 'SCHOOL' ? 'SCHOOL' : mode === 'HOME' ? 'HOME' : 'LOCKED'}
+                        <div className="px-2 py-0.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-300 text-[10px] font-bold tracking-wider uppercase">
+                            DIRECT_LINK
                         </div>
                     </div>
                 </div>
@@ -273,18 +252,16 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
 
       {/* --- VIDEO CONTAINER --- */}
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
-        {/* Loading Spinner */}
         <div className="absolute inset-0 flex items-center justify-center z-0">
             <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
 
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}-${mode}`}
+            key={`${server}-${movie.id}-${season}-${episode}`}
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
             allowFullScreen
-            allow="cross-origin-isolated; storage-access"
-            {...({ credentialless: "true" } as any)}
+            // Strict sandbox removal to fix playback issues on providers
             title={`Watch ${title}`}
         ></iframe>
       </div>
