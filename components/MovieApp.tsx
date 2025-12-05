@@ -5,7 +5,6 @@ import SettingsModal from './SettingsModal';
 import { Movie, Settings, MediaType, SortOption, Genre, GenreFilter } from '../types';
 import { discoverMedia, searchMovies, getGenres } from '../services/tmdb';
 import { Loader2, Settings as SettingsIcon, Search, ChevronDown, Home } from 'lucide-react';
-import { socket } from './GlobalOverlay';
 
 const TMDB_STORAGE_KEY = 'redstream_tmdb_key';
 const DEFAULT_API_KEY = '0dd07605b5de27e35ab3e0a14d5854db';
@@ -53,10 +52,6 @@ const MovieApp: React.FC<MovieAppProps> = ({ onBack }) => {
 
   useEffect(() => {
     if (!selectedMovie) {
-      socket.emit('update_activity', {
-        page: 'MovieApp',
-        activity: debouncedSearch ? `Searching: "${debouncedSearch}"` : 'Browsing Catalog'
-      });
       document.title = 'WinstonStreams';
     }
   }, [debouncedSearch, selectedMovie]);

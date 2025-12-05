@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
 import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
-import { socket } from './GlobalOverlay';
 
 interface PlayerProps {
   movie: Movie | null;
@@ -40,24 +39,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     };
   }, []);
 
-  // --- ACTIVITY REPORTING ---
+  // --- TITLE UPDATE ---
   useEffect(() => {
     if (movie) {
         const title = movie.title || movie.name;
-        const activity = movie.media_type === 'tv' || movie.name 
-            ? `Watching TV: ${title} (S${season}:E${episode})`
-            : `Watching Movie: ${title}`;
-        
-        const poster = movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : '';
-
-        socket.emit('update_activity', {
-            page: 'Player',
-            activity: activity,
-            poster: poster
-        });
         document.title = `Watch: ${title}`;
     }
-  }, [movie, season, episode]);
+  }, [movie]);
 
   // --- TV DETAILS ---
   useEffect(() => {

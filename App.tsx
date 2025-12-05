@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
-import { GlobalOverlay } from './components/GlobalOverlay';
 import { Globe, Tv, Home as HomeIcon } from 'lucide-react';
 
 type AppMode = 'launcher' | 'streams' | 'searches';
@@ -57,9 +56,6 @@ const App: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-zinc-950 text-white relative font-sans selection:bg-white/20 overflow-hidden flex flex-col">
       
-      {/* 1. Global Overlay */}
-      <GlobalOverlay />
-
       {/* 2. Main App Content */}
       <div className="relative z-10 w-full flex-1 flex flex-col overflow-hidden">
         {appMode === 'streams' && <MovieApp onBack={handleBackToLauncher} />}
