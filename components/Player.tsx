@@ -15,7 +15,8 @@ type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- STATE ---
-  const [server, setServer] = useState<ServerOption>('vidlink');
+  // CHANGED: Set default state to 'viksrc'
+  const [server, setServer] = useState<ServerOption>('viksrc');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
