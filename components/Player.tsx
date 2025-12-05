@@ -97,13 +97,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const isTv = movie.media_type === 'tv' || !!movie.name;
   const title = movie.title || movie.name;
 
-// --- EMBED URL LOGIC ---
+  // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
     switch (server) {
       case 'vidlink':
         return isTv
-          ? `https://vidlink.pro/tv/tmdb/${movie.id}-${season}-${episode}`
-          : `https://vidlink.pro/movie/tmdb/${movie.id}`;
+          ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
+          : `https://vidlink.pro/movie/${movie.id}`;
       
       case 'vixsrcto':
         return isTv
@@ -116,7 +116,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
       
       default:
-        return `https://vidlink.pro/movie/tmdb/${movie.id}`;
+        return `https://vidlink.pro/movie/${movie.id}`;
     }
   };
 
