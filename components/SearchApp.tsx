@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Home, Search, Loader2, X } from 'lucide-react';
-import { socket } from './GlobalOverlay';
 
 interface SearchAppProps {
   onBack: () => void;
@@ -11,18 +10,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    socket.emit('update_activity', {
-        page: 'WinstonSearches',
-        activity: 'Secure Browsing - Idle'
-    });
-    return () => {
-        socket.emit('update_activity', {
-            page: 'Launcher',
-            activity: 'Idle'
-        });
-    };
-  }, []);
+  // Removed useEffect containing socket logic
 
   const isUrl = (str: string) => {
     const pattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
@@ -33,10 +21,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     e.preventDefault();
     if (!query.trim()) return;
     
-    socket.emit('update_activity', {
-        page: 'WinstonSearches',
-        activity: `Searching: "${query}"`
-    });
+    // Removed socket.emit
 
     setIsLoading(true);
     let targetUrl = '';
@@ -60,10 +45,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     setQuery('');
     setSearchUrl('');
     setIsLoading(false);
-    socket.emit('update_activity', {
-        page: 'WinstonSearches',
-        activity: 'Secure Browsing - Idle'
-    });
+    // Removed socket.emit
   };
 
   return (
