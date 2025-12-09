@@ -19,12 +19,12 @@ const AppsApp: React.FC<AppsAppProps> = ({ onBack }) => {
   const [showSort, setShowSort] = useState(false);
   const [fallbackIcons, setFallbackIcons] = useState<Set<string>>(new Set());
 
-    useEffect(() => {
-     import('../data/apps.json').then((data) => {
-       const appsData = data.default.apps || []; // Use the "apps" key from apps.json
-       setApps(appsData);
-     });
-   }, []);
+  useEffect(() => {
+    import('../data/apps.json').then((data) => {
+      const appsData = data.default?.apps || data.apps || []; // Handle both formats
+      setApps(appsData);
+    });
+  }, []);
 
   const handleImageError = (appName: string) => {
     setFallbackIcons(prev => new Set(prev).add(appName));

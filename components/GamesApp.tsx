@@ -20,11 +20,11 @@ const GamesApp: React.FC<GamesAppProps> = ({ onBack }) => {
   const [fallbackIcons, setFallbackIcons] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-     import('../data/apps.json').then((data) => {
-       const gamesData = data.default.games || []; // Use the "games" key from apps.json
-       setGames(gamesData);
-     });
-   }, []);
+    import('../data/apps.json').then((data) => {
+      const gamesData = data.default?.games || data.games || []; // Handle both formats
+      setGames(gamesData);
+    });
+  }, []);
 
   const handleImageError = (appName: string) => {
     setFallbackIcons(prev => new Set(prev).add(appName));
