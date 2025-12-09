@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
 
 interface PlayerProps {
@@ -10,12 +10,9 @@ interface PlayerProps {
   apiKey: string;
 }
 
-// Updated server list
-type ServerOption = 'vidlink' | 'vixsrcto' | 'viksrc';
-
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   // --- STATE ---
-  const [server, setServer] = useState<ServerOption>('vidlink');
+  // Server state removed, defaulting to vidlink logic
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
@@ -97,30 +94,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const isTv = movie.media_type === 'tv' || !!movie.name;
   const title = movie.title || movie.name;
 
-  // --- EMBED URL LOGIC ---
-  const getEmbedUrl = () => {
-    switch (server) {
-      case 'vidlink':
-        return isTv
-          ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
-          : `https://vidlink.pro/movie/${movie.id}`;
-      
-      case 'vixsrcto':
-        return isTv
-          ? `https://vixsrc.to/tv/${movie.id}/${season}/${episode}`
-          : `https://vixsrc.to/movie/${movie.id}`;
-        
-      case 'viksrc':
-        return isTv
-          ? `https://vidsrc.cc/v2/embed/tv/${movie.id}/${season}/${episode}`
-          : `https://vidsrc.cc/v2/embed/movie/${movie.id}`;
-      
-      default:
-        return `https://vidlink.pro/movie/${movie.id}`;
-    }
-  };
-
-  const embedSrc = getEmbedUrl();
+  // --- EMBED URL ---
+  // Hardcoded to VidLink
+  const embedSrc = isTv
+    ? `https://vidlink.pro/tv/${movie.id}/${season}/${episode}`
+    : `https://vidlink.pro/movie/${movie.id}`;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
@@ -214,23 +192,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                         </button>
                     </div>
                 )}
-
-                {/* Server Select */}
-                <div className="relative group">
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <MonitorPlay className="h-3.5 w-3.5" />
-                    </div>
-                    <select 
-                        value={server}
-                        onChange={(e) => setServer(e.target.value as ServerOption)}
-                        className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-bold rounded-md pl-8 pr-8 py-2 focus:outline-none focus:border-zinc-600 focus:text-white transition cursor-pointer hover:bg-zinc-800 min-w-[120px]"
-                    >
-                        <option value="vidlink" className="bg-zinc-900">VidLink</option>
-                        <option value="vixsrcto" className="bg-zinc-900">VixSrc.to</option>
-                        <option value="viksrc" className="bg-zinc-900">Viksrc</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
-                </div>
             </div>
         </div>
       </div>
@@ -242,11 +203,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
 
         <iframe
-            key={`${server}-${movie.id}-${season}-${episode}`}
+            key={`vidlink-${movie.id}-${season}-${episode}`}
             src={embedSrc}
             className="absolute inset-0 w-full h-full border-0 z-10"
+            // Important for Fullscreen and Player Controls
             allowFullScreen
-            // Strict sandbox removal to fix playback issues on providers
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            referrerPolicy="origin"
             title={`Watch ${title}`}
         ></iframe>
       </div>

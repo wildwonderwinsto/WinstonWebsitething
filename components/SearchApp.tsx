@@ -9,20 +9,15 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
   const [query, setQuery] = useState('');
   const [searchUrl, setSearchUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Removed useEffect containing socket logic
 
   const isUrl = (str: string) => {
     const pattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
     return pattern.test(str);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = () => {
     if (!query.trim()) return;
     
-    // Removed socket.emit
-
     setIsLoading(true);
     let targetUrl = '';
     const input = query.trim();
@@ -31,21 +26,25 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
     if (looksLikeUrl) {
          targetUrl = input.startsWith('http') ? input : `https://${input}`;
     } else {
-         // Default to Bing for best compatibility with wrapper
-         targetUrl = `https://www.bing.com/search?q=${encodeURIComponent(input)}`;
+         // Use Google search for non-URLs
+         targetUrl = `https://www.google.com/search?q=${encodeURIComponent(input)}`;
     }
     
-    // Always use Google Translate Wrapper for Home Mode to bypass X-Frame-Options
-    const finalUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(targetUrl)}`;
-    
-    setSearchUrl(finalUrl);
+    // Use iframe directly
+    setSearchUrl(targetUrl);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
   };
 
   const clearSearch = () => {
     setQuery('');
     setSearchUrl('');
     setIsLoading(false);
-    // Removed socket.emit
   };
 
   return (
@@ -69,7 +68,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                WinstonSearches
              </h1>
              
-             <form onSubmit={handleSearch} className="relative w-full group">
+             <div className="relative w-full group">
                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
@@ -80,9 +79,10 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                
                <input
                   type="text"
-                  placeholder="Search the web..."
+                  placeholder="Search the web or enter URL..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyPress}
                   className="w-full rounded-full bg-zinc-900/80 border border-zinc-800 py-4 pl-12 pr-12 text-lg text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:border-transparent transition shadow-xl focus:ring-blue-600"
                   autoFocus
                />
@@ -96,7 +96,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                     <X className="h-5 w-5" />
                  </button>
                )}
-             </form>
+             </div>
          </div>
 
          {searchUrl && (
@@ -112,7 +112,7 @@ const SearchApp: React.FC<SearchAppProps> = ({ onBack }) => {
                  className="w-full h-full border-0 bg-white"
                  title="Search Results"
                  onLoad={() => setIsLoading(false)}
-                 sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals allow-presentation"
+                 sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                />
             </div>
          )}

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import MovieApp from './components/MovieApp';
 import SearchApp from './components/SearchApp';
-import { Globe, Tv, Home as HomeIcon } from 'lucide-react';
+import GamesApp from './components/GamesApp';
+import AppsApp from './components/AppsApp';
+import { Globe, Tv, Home as HomeIcon, Gamepad2, LayoutGrid } from 'lucide-react';
 
-type AppMode = 'launcher' | 'streams' | 'searches';
+type AppMode = 'launcher' | 'streams' | 'searches' | 'games' | 'apps';
 
 const App: React.FC = () => {
   // Initialize appMode based on the current URL path
@@ -11,10 +13,12 @@ const App: React.FC = () => {
     const path = window.location.pathname;
     if (path.includes('/WinstonStreams')) return 'streams';
     if (path.includes('/WinstonSearches')) return 'searches';
+    if (path.includes('/WinstonGames')) return 'games';
+    if (path.includes('/WinstonApps')) return 'apps';
     return 'launcher';
   });
 
-  const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<'streams' | 'searches' | 'games' | 'apps' | null>(null);
 
   // Handle Browser Back Button and Deep Linking
   useEffect(() => {
@@ -22,6 +26,8 @@ const App: React.FC = () => {
         const path = window.location.pathname;
         if (path.includes('/WinstonStreams')) setAppMode('streams');
         else if (path.includes('/WinstonSearches')) setAppMode('searches');
+        else if (path.includes('/WinstonGames')) setAppMode('games');
+        else if (path.includes('/WinstonApps')) setAppMode('apps');
         else setAppMode('launcher');
     };
 
@@ -31,7 +37,11 @@ const App: React.FC = () => {
 
   const handleLaunch = (target: AppMode) => {
     setAppMode(target);
-    const newPath = target === 'streams' ? '/WinstonStreams' : target === 'searches' ? '/WinstonSearches' : '/';
+    let newPath = '/';
+    if (target === 'streams') newPath = '/WinstonStreams';
+    else if (target === 'searches') newPath = '/WinstonSearches';
+    else if (target === 'games') newPath = '/WinstonGames';
+    else if (target === 'apps') newPath = '/WinstonApps';
     window.history.pushState({}, '', newPath);
   };
 
@@ -42,15 +52,19 @@ const App: React.FC = () => {
 
   // Helper to determine Orb RGBA Colors
   const getTopLeftOrbColor = () => {
-    if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)'; // Red-600 strong
-    if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)'; // Blue-600 strong
-    return 'rgba(255, 255, 255, 0.08)'; // White very weak
+    if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)'; // Red
+    if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)'; // Blue
+    if (hoveredCard === 'games') return 'rgba(168, 85, 247, 0.25)'; // Purple
+    if (hoveredCard === 'apps') return 'rgba(34, 197, 94, 0.25)'; // Green
+    return 'rgba(255, 255, 255, 0.08)';
   };
 
   const getBottomRightOrbColor = () => {
-    if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)'; // Red-600 strong
-    if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)'; // Blue-600 strong
-    return 'rgba(255, 255, 255, 0.08)'; // White very weak
+    if (hoveredCard === 'streams') return 'rgba(220, 38, 38, 0.25)';
+    if (hoveredCard === 'searches') return 'rgba(37, 99, 235, 0.25)';
+    if (hoveredCard === 'games') return 'rgba(168, 85, 247, 0.25)';
+    if (hoveredCard === 'apps') return 'rgba(34, 197, 94, 0.25)';
+    return 'rgba(255, 255, 255, 0.08)';
   };
 
   return (
@@ -61,6 +75,10 @@ const App: React.FC = () => {
         {appMode === 'streams' && <MovieApp onBack={handleBackToLauncher} />}
         
         {appMode === 'searches' && <SearchApp onBack={handleBackToLauncher} />}
+
+        {appMode === 'games' && <GamesApp onBack={handleBackToLauncher} />}
+
+        {appMode === 'apps' && <AppsApp onBack={handleBackToLauncher} />}
 
         {appMode === 'launcher' && (
           <div className="flex-1 w-full h-full overflow-y-auto no-scrollbar scroll-smooth">
@@ -147,6 +165,64 @@ const App: React.FC = () => {
                                     </h2>
                                     <p className="mx-auto max-w-xs text-sm md:text-base font-medium text-zinc-400 transition-colors duration-300 group-hover:text-zinc-300">
                                         Secure gateway.
+                                    </p>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Games Card */}
+                        <div 
+                        onClick={() => handleLaunch('games')}
+                        onMouseEnter={() => setHoveredCard('games')}
+                        onMouseLeave={() => setHoveredCard(null)}
+                        className="group relative cursor-pointer active:scale-95 transition-transform"
+                        >
+                            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-purple-600 to-pink-600 opacity-20 blur transition duration-500 group-hover:opacity-40 group-hover:blur-md"></div>
+                            <div className="relative h-full overflow-hidden rounded-[2rem] bg-zinc-900 ring-1 ring-white/10 transition-all duration-500 group-hover:scale-[1.02] group-hover:bg-zinc-800/80">
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                <div className="relative flex flex-col items-center justify-center gap-6 md:gap-8 p-8 text-center md:p-14">
+                                <div className="relative">
+                                    <div className="absolute inset-0 animate-pulse rounded-full bg-purple-500/20 blur-xl"></div>
+                                    <div className="relative flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-zinc-800 to-black shadow-2xl ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110 group-hover:ring-purple-500/50">
+                                        <Gamepad2 className="h-8 w-8 md:h-10 md:w-10 text-purple-500 transition-colors duration-300 group-hover:text-white" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 md:space-y-4">
+                                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white transition-colors duration-300 group-hover:text-purple-500">
+                                        WinstonGames
+                                    </h2>
+                                    <p className="mx-auto max-w-xs text-sm md:text-base font-medium text-zinc-400 transition-colors duration-300 group-hover:text-zinc-300">
+                                        Epic gaming collection.
+                                    </p>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Apps Card */}
+                        <div 
+                        onClick={() => handleLaunch('apps')}
+                        onMouseEnter={() => setHoveredCard('apps')}
+                        onMouseLeave={() => setHoveredCard(null)}
+                        className="group relative cursor-pointer active:scale-95 transition-transform"
+                        >
+                            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-green-600 to-emerald-600 opacity-20 blur transition duration-500 group-hover:opacity-40 group-hover:blur-md"></div>
+                            <div className="relative h-full overflow-hidden rounded-[2rem] bg-zinc-900 ring-1 ring-white/10 transition-all duration-500 group-hover:scale-[1.02] group-hover:bg-zinc-800/80">
+                                <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                <div className="relative flex flex-col items-center justify-center gap-6 md:gap-8 p-8 text-center md:p-14">
+                                <div className="relative">
+                                    <div className="absolute inset-0 animate-pulse rounded-full bg-green-500/20 blur-xl"></div>
+                                    <div className="relative flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-zinc-800 to-black shadow-2xl ring-1 ring-white/10 transition-transform duration-500 group-hover:scale-110 group-hover:ring-green-500/50">
+                                        <LayoutGrid className="h-8 w-8 md:h-10 md:w-10 text-green-500 transition-colors duration-300 group-hover:text-white" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 md:space-y-4">
+                                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white transition-colors duration-300 group-hover:text-green-500">
+                                        WinstonApps
+                                    </h2>
+                                    <p className="mx-auto max-w-xs text-sm md:text-base font-medium text-zinc-400 transition-colors duration-300 group-hover:text-zinc-300">
+                                        Powerful web tools.
                                     </p>
                                 </div>
                                 </div>
