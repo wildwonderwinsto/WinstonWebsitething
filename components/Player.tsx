@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
 import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
@@ -19,6 +19,8 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // --- SCROLL LOCK ---
   useEffect(() => {
@@ -36,6 +38,31 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       doc.style.overflow = originalHtmlOverflow;
       body.style.overflow = originalBodyOverflow;
       body.style.height = originalBodyHeight;
+    };
+  }, []);
+
+  // --- FULLSCREEN DETECTION ---
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -113,13 +140,11 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidlink.pro/movie/${tmdbId}`;
       
       case 'vidsrc':
-        // Fixed: Correct vidsrc.cc URL structure
         return isTv
           ? `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         
       case 'vidsrcto':
-        // Fixed: Correct vidsrc.to URL structure with /embed/
         return isTv
           ? `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`
           : `https://vidsrc.to/embed/movie/${tmdbId}`;
@@ -132,10 +157,17 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const embedSrc = getEmbedUrl();
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300"
+    >
       
-      {/* --- HEADER CONTROLS --- */}
-      <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg">
+      {/* --- HEADER CONTROLS (Hidden during fullscreen) --- */}
+      <div 
+        className={`flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg transition-opacity duration-300 ${
+          isFullscreen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
         <div className="mx-auto max-w-[1920px] flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             
           {/* Left: Close & Title */}
