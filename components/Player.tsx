@@ -1,22 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Movie, TVDetails } from '../types';
 import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
-
-// Mock types for demo
-interface Movie {
-  id: number;
-  title?: string;
-  name?: string;
-  media_type?: string;
-}
-
-interface TVDetails {
-  seasons: Array<{
-    id: number;
-    season_number: number;
-    episode_count: number;
-  }>;
-}
+import { getTVDetails } from '../services/tmdb';
 
 interface PlayerProps {
   movie: Movie | null;
@@ -27,13 +13,14 @@ interface PlayerProps {
 type ServerOption = 'vidlink' | 'vidsrc' | 'vidsrcto';
 
 const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
+  // --- STATE ---
   const [server, setServer] = useState<ServerOption>('vidlink');
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
   const [tvDetails, setTvDetails] = useState<TVDetails | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
-  // Scroll lock
+  // --- SCROLL LOCK ---
   useEffect(() => {
     const doc = document.documentElement;
     const body = document.body;
@@ -52,7 +39,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     };
   }, []);
 
-  // Title update
+  // --- TITLE UPDATE ---
   useEffect(() => {
     if (movie) {
       const title = movie.title || movie.name;
@@ -60,26 +47,31 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
     }
   }, [movie]);
 
-  // Force iframe reload when server changes
+  // --- FORCE IFRAME RELOAD ON SERVER CHANGE ---
   useEffect(() => {
     setIframeKey(prev => prev + 1);
   }, [server, season, episode, movie?.id]);
 
-  // TV Details loading (mock for demo)
+  // --- TV DETAILS ---
   useEffect(() => {
     if ((movie?.media_type === 'tv' || movie?.name) && apiKey) {
-      // In real app, call getTVDetails here
-      // For now, using mock data
-      setTvDetails({
-        seasons: Array.from({ length: 5 }, (_, i) => ({
-          id: i + 1,
-          season_number: i + 1,
-          episode_count: 10
-        }))
-      });
+      const loadDetails = async () => {
+        try {
+          const details = await getTVDetails(movie.id, apiKey);
+          setTvDetails(details);
+          if (details?.seasons?.length && !details.seasons.find(s => s.season_number === 1)) {
+            const firstSeason = details.seasons.find(s => s.season_number > 0) || details.seasons[0];
+            if (firstSeason) setSeason(firstSeason.season_number);
+          }
+        } catch (e) {
+          console.error("Failed to load TV details", e);
+        }
+      };
+      loadDetails();
     }
   }, [movie, apiKey]);
 
+  // --- HANDLERS ---
   const handleNextEpisode = () => {
     const maxEps = getEpisodesForSeason();
     if (episode < maxEps) {
@@ -110,7 +102,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const isTv = movie.media_type === 'tv' || !!movie.name;
   const title = movie.title || movie.name;
 
-  // Fixed embed URL logic
+  // --- EMBED URL LOGIC (FIXED) ---
   const getEmbedUrl = () => {
     const tmdbId = movie.id;
     
@@ -121,13 +113,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           : `https://vidlink.pro/movie/${tmdbId}`;
       
       case 'vidsrc':
-        // Fixed: vidsrc.cc (not viksrc)
+        // Fixed: Correct vidsrc.cc URL structure
         return isTv
           ? `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`
           : `https://vidsrc.cc/v2/embed/movie/${tmdbId}`;
         
       case 'vidsrcto':
-        // Fixed: vidsrc.to uses /embed/ prefix
+        // Fixed: Correct vidsrc.to URL structure with /embed/
         return isTv
           ? `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`
           : `https://vidsrc.to/embed/movie/${tmdbId}`;
@@ -140,9 +132,9 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const embedSrc = getEmbedUrl();
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col w-screen h-screen overflow-hidden animate-in fade-in duration-300">
       
-      {/* Header Controls */}
+      {/* --- HEADER CONTROLS --- */}
       <div className="flex-none bg-zinc-950 border-b border-zinc-800 p-4 relative z-20 shadow-lg">
         <div className="mx-auto max-w-[1920px] flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             
@@ -169,9 +161,10 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           {/* Right: Controls */}
           <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-start xl:justify-end">
             
-            {/* TV Navigation */}
+            {/* --- TV NAV --- */}
             {isTv && (
               <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50">
+                {/* Prev Button */}
                 <button 
                   onClick={handlePrevEpisode} 
                   disabled={season === 1 && episode === 1}
@@ -181,6 +174,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
 
+                {/* Season Select */}
                 <div className="relative group">
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
                     <Layers className="h-3 w-3" />
@@ -200,6 +194,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
                 </div>
 
+                {/* Episode Select */}
                 <div className="relative group">
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
                     <Play className="h-3 w-3" />
@@ -218,6 +213,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
                 </div>
 
+                {/* Next Button */}
                 <button 
                   onClick={handleNextEpisode} 
                   className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
@@ -248,7 +244,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
         </div>
       </div>
 
-      {/* Video Container */}
+      {/* --- VIDEO CONTAINER --- */}
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center z-0">
           <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
@@ -270,31 +266,4 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   );
 };
 
-// Demo wrapper
-export default function PlayerDemo() {
-  const [showPlayer, setShowPlayer] = useState(false);
-  const [demoMovie] = useState<Movie>({
-    id: 603,
-    title: "The Matrix",
-    media_type: "movie"
-  });
-
-  return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <button
-        onClick={() => setShowPlayer(true)}
-        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition"
-      >
-        Open Player Demo
-      </button>
-      
-      {showPlayer && (
-        <Player
-          movie={demoMovie}
-          onClose={() => setShowPlayer(false)}
-          apiKey="demo-key"
-        />
-      )}
-    </div>
-  );
-}
+export default Player;
