@@ -18,12 +18,39 @@ const AppsApp: React.FC<AppsAppProps> = ({ onBack }) => {
   const [sortBy, setSortBy] = useState('alphabetical');
   const [showSort, setShowSort] = useState(false);
   const [fallbackIcons, setFallbackIcons] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    import('../data/apps.json').then((data) => {
-      const appsData = data.default?.apps || data.apps || []; // Handle both formats
-      setApps(appsData);
-    });
+    // FIXED: Fetch from public folder instead of import
+    const loadApps = async () => {
+      try {
+        const response = await fetch('/data/apps.json');
+        if (!response.ok) throw new Error('Failed to load apps');
+        const data = await response.json();
+        const appsData = data.apps || [];
+        setApps(appsData);
+      } catch (error) {
+        console.error('Error loading apps:', error);
+        // Fallback data if fetch fails
+        setApps([
+          {
+            appName: "YouTube",
+            icon: "https://www.youtube.com/favicon.ico",
+            desc: "Video Streaming",
+            url: "https://youtube.com"
+          },
+          {
+            appName: "Discord",
+            icon: "https://discord.com/assets/847541504914fd33810e70a0ea73177e.ico",
+            desc: "Chat Platform",
+            url: "https://discord.com/app"
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadApps();
   }, []);
 
   const handleImageError = (appName: string) => {
@@ -42,6 +69,17 @@ const AppsApp: React.FC<AppsAppProps> = ({ onBack }) => {
   const handleAppClick = (url: string) => {
     window.open(url, '_blank');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <LayoutGrid className="h-16 w-16 text-green-500 animate-pulse mx-auto mb-4" />
+          <p className="text-zinc-400">Loading apps...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -64,7 +102,7 @@ const AppsApp: React.FC<AppsAppProps> = ({ onBack }) => {
             </h1>
           </div>
           
-          <div className="w-28" /> {/* Spacer */}
+          <div className="w-28" />
         </div>
 
         {/* Search Bar */}

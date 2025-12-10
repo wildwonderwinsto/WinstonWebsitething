@@ -18,12 +18,39 @@ const GamesApp: React.FC<GamesAppProps> = ({ onBack }) => {
   const [sortBy, setSortBy] = useState('alphabetical');
   const [showSort, setShowSort] = useState(false);
   const [fallbackIcons, setFallbackIcons] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    import('../data/apps.json').then((data) => {
-      const gamesData = data.default?.games || data.games || []; // Handle both formats
-      setGames(gamesData);
-    });
+    // FIXED: Fetch from public folder instead of import
+    const loadGames = async () => {
+      try {
+        const response = await fetch('/data/apps.json');
+        if (!response.ok) throw new Error('Failed to load games');
+        const data = await response.json();
+        const gamesData = data.games || [];
+        setGames(gamesData);
+      } catch (error) {
+        console.error('Error loading games:', error);
+        // Fallback data if fetch fails
+        setGames([
+          {
+            appName: "1v1.LOL",
+            icon: "https://play-lh.googleusercontent.com/VswHQjcAttxsLE47RuS4PqpC4LT7lCoSjE7Hx5AW_yCxtDvcnsHHvm5CTuL5BPN-uRTP",
+            desc: "Battle Royale",
+            url: "https://1v1.lol"
+          },
+          {
+            appName: "Slope",
+            icon: "https://slope-game.github.io/rsc/favicon.ico",
+            desc: "Endless Running",
+            url: "https://slope-game.github.io"
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadGames();
   }, []);
 
   const handleImageError = (appName: string) => {
@@ -42,6 +69,17 @@ const GamesApp: React.FC<GamesAppProps> = ({ onBack }) => {
   const handleGameClick = (url: string) => {
     window.open(url, '_blank');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Gamepad2 className="h-16 w-16 text-purple-500 animate-pulse mx-auto mb-4" />
+          <p className="text-zinc-400">Loading games...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
@@ -64,7 +102,7 @@ const GamesApp: React.FC<GamesAppProps> = ({ onBack }) => {
             </h1>
           </div>
           
-          <div className="w-28" /> {/* Spacer */}
+          <div className="w-28" />
         </div>
 
         {/* Search Bar */}
