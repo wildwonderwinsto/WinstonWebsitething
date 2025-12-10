@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
-import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
+import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play, Maximize, Minimize } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
-import { Maximize, Minimize } from 'lucide-react';
+
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
@@ -108,37 +108,39 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       setEpisode(1);
     }
   };
-  const toggleFullscreen = async () => {
-  if (!containerRef.current) return;
 
-  try {
-    if (!isFullscreen) {
-      // Enter fullscreen
-      if (containerRef.current.requestFullscreen) {
-        await containerRef.current.requestFullscreen();
-      } else if ((containerRef.current as any).webkitRequestFullscreen) {
-        await (containerRef.current as any).webkitRequestFullscreen();
-      } else if ((containerRef.current as any).mozRequestFullScreen) {
-        await (containerRef.current as any).mozRequestFullScreen();
-      } else if ((containerRef.current as any).msRequestFullscreen) {
-        await (containerRef.current as any).msRequestFullscreen();
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!isFullscreen) {
+        // Enter fullscreen
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        } else if ((containerRef.current as any).mozRequestFullScreen) {
+          await (containerRef.current as any).mozRequestFullScreen();
+        } else if ((containerRef.current as any).msRequestFullscreen) {
+          await (containerRef.current as any).msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          await (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
       }
-    } else {
-      // Exit fullscreen
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        await (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen();
-      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
     }
-  } catch (err) {
-    console.error('Fullscreen error:', err);
-  }
-};
+  };
+
   const handlePrevEpisode = () => {
     if (episode > 1) {
       setEpisode(episode - 1);
@@ -159,7 +161,7 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
   const isTv = movie.media_type === 'tv' || !!movie.name;
   const title = movie.title || movie.name;
 
-  // --- EMBED URL LOGIC (FIXED) ---
+  // --- EMBED URL LOGIC ---
   const getEmbedUrl = () => {
     const tmdbId = movie.id;
     
@@ -226,7 +228,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
             {/* --- TV NAV --- */}
             {isTv && (
               <div className="flex items-center gap-2 bg-zinc-900/50 p-1 rounded-lg border border-zinc-800/50">
-                {/* Prev Button */}
                 <button 
                   onClick={handlePrevEpisode} 
                   disabled={season === 1 && episode === 1}
@@ -275,7 +276,6 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none group-hover:text-zinc-300" />
                 </div>
 
-                {/* Next Button */}
                 <button 
                   onClick={handleNextEpisode} 
                   className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
@@ -305,18 +305,23 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           </div>
         </div>
       </div>
-      <button 
-        onClick={toggleFullscreen}
-        className="p-2 rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
-        title={isFullscreen ? "Exit Fullscreen (ESC)" : "Enter Fullscreen"}
-    >
-        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-    </button>
+
       {/* --- VIDEO CONTAINER --- */}
-      <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
+      <div className="flex-1 relative bg-black w-full h-full overflow-hidden group/video">
+        
+        {/* Loading Spinner */}
         <div className="absolute inset-0 flex items-center justify-center z-0">
           <div className="h-10 w-10 border-4 border-zinc-800 border-t-red-600 rounded-full animate-spin"></div>
         </div>
+
+        {/* Floating Fullscreen Button */}
+        <button 
+            onClick={toggleFullscreen}
+            className="absolute bottom-8 right-8 z-50 p-3 rounded-full bg-zinc-900/90 border border-zinc-700/50 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:scale-110 active:scale-95 transition-all duration-300 shadow-xl backdrop-blur-sm group-hover/video:opacity-100 md:opacity-0 md:group-hover/video:opacity-100"
+            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+            {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+        </button>
 
         <iframe
           key={iframeKey}
