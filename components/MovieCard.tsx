@@ -11,8 +11,9 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onClick }) => {
   const title = movie.title || movie.name || 'Untitled';
   const year = (movie.release_date || movie.first_air_date || '').split('-')[0];
   const imageUrl = movie.poster_path 
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-    : 'https://picsum.photos/500/750?grayscale'; // Fallback
+  ? `https://wsrv.nl/?url=image.tmdb.org/t/p/w500${movie.poster_path}&w=500&output=webp`
+  : 'https://via.placeholder.com/500x750?text=No+Image';
+   
 
   return (
     <div 
@@ -25,6 +26,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie, onClick }) => {
           alt={title} 
           className="h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-60"
           loading="lazy"
+          decoding="async"
         />
         
         {/* Hover Overlay */}
