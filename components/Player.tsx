@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Movie, TVDetails } from '../types';
 import { X, ChevronDown, MonitorPlay, ChevronRight, ChevronLeft, Layers, Play } from 'lucide-react';
 import { getTVDetails } from '../services/tmdb';
-
+import { Maximize, Minimize } from 'lucide-react';
 interface PlayerProps {
   movie: Movie | null;
   onClose: () => void;
@@ -108,7 +108,37 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
       setEpisode(1);
     }
   };
+  const toggleFullscreen = async () => {
+  if (!containerRef.current) return;
 
+  try {
+    if (!isFullscreen) {
+      // Enter fullscreen
+      if (containerRef.current.requestFullscreen) {
+        await containerRef.current.requestFullscreen();
+      } else if ((containerRef.current as any).webkitRequestFullscreen) {
+        await (containerRef.current as any).webkitRequestFullscreen();
+      } else if ((containerRef.current as any).mozRequestFullScreen) {
+        await (containerRef.current as any).mozRequestFullScreen();
+      } else if ((containerRef.current as any).msRequestFullscreen) {
+        await (containerRef.current as any).msRequestFullscreen();
+      }
+    } else {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        await (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
+      }
+    }
+  } catch (err) {
+    console.error('Fullscreen error:', err);
+  }
+};
   const handlePrevEpisode = () => {
     if (episode > 1) {
       setEpisode(episode - 1);
@@ -275,7 +305,13 @@ const Player: React.FC<PlayerProps> = ({ movie, onClose, apiKey }) => {
           </div>
         </div>
       </div>
-
+      <button 
+        onClick={toggleFullscreen}
+        className="p-2 rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white transition"
+        title={isFullscreen ? "Exit Fullscreen (ESC)" : "Enter Fullscreen"}
+    >
+        {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+    </button>
       {/* --- VIDEO CONTAINER --- */}
       <div className="flex-1 relative bg-black w-full h-full overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center z-0">
